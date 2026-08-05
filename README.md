@@ -88,4 +88,4 @@ Le plan détaillé complet (modèle de données, règles métier, modules, défi
 
 ## 📄 Licence
 
-Tous droits réservés.
+Tous droits réservés a BesmaAI.

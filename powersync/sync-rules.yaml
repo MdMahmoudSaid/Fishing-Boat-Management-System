@@ -1,0 +1,30 @@
+# Sync Rules PowerSync — V1 : une seule company/un seul admin, donc un seul
+# bucket global synchronisant tout (§3 du PROJECT_PLAN : "everything, since
+# there's one company/one admin — no per-user partitioning needed").
+#
+# À coller dans le PowerSync Dashboard (Instance -> Sync Rules) ou dans le
+# champ `sync_config_content` si géré via Terraform.
+#
+# Les lignes soft-deleted (`deleted_at` non nul) sont volontairement
+# synchronisées elles aussi : le client a besoin de savoir qu'un
+# enregistrement a été supprimé, et les filtrer en local est la
+# responsabilité des requêtes de l'app, pas des sync rules.
+
+bucket_definitions:
+  global:
+    data:
+      - SELECT * FROM companies
+      - SELECT * FROM users
+      - SELECT * FROM boats
+      - SELECT * FROM crew_members
+      - SELECT * FROM fish_categories
+      - SELECT * FROM fish_quality_levels
+      - SELECT * FROM expense_categories
+      - SELECT * FROM buyers
+      - SELECT * FROM trips
+      - SELECT * FROM trip_crew
+      - SELECT * FROM expenses
+      - SELECT * FROM catches
+      - SELECT * FROM sales
+      - SELECT * FROM sale_payments
+      - SELECT * FROM settings

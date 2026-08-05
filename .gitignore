@@ -41,3 +41,6 @@ next-env.d.ts
 *.db
 *.sqlite
 *.sqlite3
+
+# Contains a real generated DB password once filled in — never commit
+supabase/powersync_setup.sql

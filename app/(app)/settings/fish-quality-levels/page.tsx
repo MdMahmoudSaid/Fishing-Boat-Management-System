@@ -1,0 +1,143 @@
+"use client";
+
+import { useState } from "react";
+import { usePowerSync, useQuery } from "@powersync/react";
+import { t } from "@/lib/i18n";
+import { useCompanyId } from "@/lib/auth/useCompanyId";
+import {
+  createFishQualityLevel,
+  updateFishQualityLevel,
+  softDeleteFishQualityLevel,
+  type FishQualityLevelInput,
+} from "@/lib/db/fishQualityLevels";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FishQualityLevelForm } from "@/components/forms/FishQualityLevelForm";
+
+interface FishQualityLevelRow {
+  id: string;
+  fish_category_id: string;
+  fish_category_name: string;
+  name: string;
+  default_price: number | null;
+}
+
+interface FishCategoryOption {
+  id: string;
+  name: string;
+}
+
+export default function FishQualityLevelsPage() {
+  const powersync = usePowerSync();
+  const { companyId } = useCompanyId();
+
+  const { data: rows } = useQuery<FishQualityLevelRow>(
+    `SELECT fql.id, fql.fish_category_id, fc.name AS fish_category_name, fql.name, fql.default_price
+     FROM fish_quality_levels fql
+     JOIN fish_categories fc ON fc.id = fql.fish_category_id
+     WHERE fql.company_id = ? AND fql.deleted_at IS NULL
+     ORDER BY fc.name, fql.name`,
+    [companyId ?? ""],
+  );
+
+  const { data: categories } = useQuery<FishCategoryOption>(
+    "SELECT id, name FROM fish_categories WHERE company_id = ? AND deleted_at IS NULL ORDER BY name",
+    [companyId ?? ""],
+  );
+
+  const [editing, setEditing] = useState<FishQualityLevelRow | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+
+  function openCreate() {
+    setEditing(null);
+    setFormOpen(true);
+  }
+
+  function openEdit(row: FishQualityLevelRow) {
+    setEditing(row);
+    setFormOpen(true);
+  }
+
+  async function handleSubmit(input: FishQualityLevelInput) {
+    if (!companyId) return;
+    if (editing) {
+      await updateFishQualityLevel(powersync, editing.id, input);
+    } else {
+      await createFishQualityLevel(powersync, companyId, input);
+    }
+    setFormOpen(false);
+  }
+
+  async function handleConfirmDelete() {
+    if (pendingDeleteId) {
+      await softDeleteFishQualityLevel(powersync, pendingDeleteId);
+    }
+    setPendingDeleteId(null);
+  }
+
+  return (
+    <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">{t("settings.fishQualityLevels")}</h1>
+        <Button onClick={openCreate} disabled={!categories || categories.length === 0}>
+          {t("common.add")}
+        </Button>
+      </div>
+
+      {(!rows || rows.length === 0) && (
+        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {rows?.map((row) => (
+          <Card key={row.id} className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">{row.name}</p>
+              <p className="text-xs text-slate-500">{row.fish_category_name}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => openEdit(row)}>
+                {t("common.edit")}
+              </Button>
+              <Button variant="danger" onClick={() => setPendingDeleteId(row.id)}>
+                {t("common.delete")}
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Modal
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        title={editing ? t("common.edit") : t("common.add")}
+      >
+        <FishQualityLevelForm
+          categories={categories ?? []}
+          initial={
+            editing
+              ? {
+                  fishCategoryId: editing.fish_category_id,
+                  name: editing.name,
+                  defaultPrice: editing.default_price,
+                }
+              : undefined
+          }
+          onSubmit={handleSubmit}
+          onCancel={() => setFormOpen(false)}
+        />
+      </Modal>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title={t("settings.confirmDeleteTitle")}
+        message={t("settings.confirmDeleteMessage")}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
+    </main>
+  );
+}
