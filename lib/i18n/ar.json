@@ -11,7 +11,8 @@
     "edit": "تعديل",
     "add": "إضافة",
     "close": "إغلاق",
-    "noResults": "لا توجد عناصر"
+    "noResults": "لا توجد عناصر",
+    "back": "رجوع"
   },
   "sync": {
     "connected": "متصل",
@@ -124,7 +125,11 @@
     "photoPending": "بانتظار الرفع",
     "photoUploaded": "تم الرفع",
     "photoFailed": "فشل الرفع",
-    "total": "إجمالي المصاريف"
+    "total": "إجمالي المصاريف",
+    "noCategoriesAvailable": "أضف فئة مصروف أولاً من الإعدادات",
+    "choosePhoto": "اضغط لاختيار صورة",
+    "changePhoto": "تغيير الصورة",
+    "noPhotoChosen": "لم يتم اختيار صورة"
   },
   "catches": {
     "title": "الكميات المصطادة",
@@ -133,7 +138,9 @@
     "quantity": "الكمية",
     "unit": "الوحدة",
     "estimatedPrice": "السعر التقديري",
-    "total": "إجمالي الكميات"
+    "total": "إجمالي الكميات",
+    "noFishCategoriesAvailable": "أضف نوع سمك أولاً من الإعدادات",
+    "noFishQualityLevelsAvailable": "أضف درجة جودة أولاً من الإعدادات"
   },
   "sales": {
     "title": "المبيعات",
@@ -151,7 +158,10 @@
     "notes": "ملاحظات",
     "paid": "المدفوع",
     "outstanding": "المتبقي",
-    "noStockAvailable": "لا يوجد مخزون متاح للبيع"
+    "noStockAvailable": "لا يوجد مخزون متاح للبيع",
+    "noBuyersAvailable": "أضف مشتريًا أولاً من صفحة المشترين",
+    "paidNow": "المبلغ المدفوع الآن (اختياري)",
+    "paidNowExceedsTotal": "المبلغ المدفوع لا يمكن أن يتجاوز المبلغ الإجمالي"
   },
   "inventory": {
     "title": "المخزون",

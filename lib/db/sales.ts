@@ -19,13 +19,14 @@ interface StockRow {
 
 // Valide contre le stock restant (lecture locale uniquement, §7) avant
 // d'insérer. total_amount est calculé côté client : SQLite/PowerSync ne
-// supporte pas les colonnes générées comme Postgres.
+// supporte pas les colonnes générées comme Postgres. Retourne l'id créé
+// pour permettre d'enchaîner immédiatement un premier paiement (§14).
 export async function createSale(
   db: AbstractPowerSyncDatabase,
   companyId: string,
   tripId: string,
   input: SaleInput,
-): Promise<void> {
+): Promise<string> {
   const catches = await db.getAll<StockRow>(
     "SELECT fish_category_id, fish_quality_level_id, quantity FROM catches WHERE trip_id = ?",
     [tripId],
@@ -52,12 +53,13 @@ export async function createSale(
   );
 
   const totalAmount = input.quantity * input.salePrice;
+  const saleId = generateId();
 
   await db.execute(
     `INSERT INTO sales (id, company_id, trip_id, buyer_id, fish_category_id, fish_quality_level_id, quantity, sale_price, total_amount, date, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
-      generateId(),
+      saleId,
       companyId,
       tripId,
       input.buyerId,
@@ -70,4 +72,6 @@ export async function createSale(
       new Date().toISOString(),
     ],
   );
+
+  return saleId;
 }

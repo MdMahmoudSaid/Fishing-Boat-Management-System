@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/format";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { computeRemainingStock } from "@/lib/calculations/inventory";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface CountRow {
   count: number;
@@ -146,12 +147,12 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 p-6">
-      <h1 className="text-xl font-bold">{t("dashboard.title")}</h1>
+      <PageHeader title={t("dashboard.title")} backHref="/" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {cards.map((card) => (
           <Card key={card.labelKey}>
-            <p className="text-xs text-slate-400">{t(card.labelKey)}</p>
+            <p className="text-xs text-ink-faint">{t(card.labelKey)}</p>
             <p className="mt-1 text-lg font-semibold">{card.value}</p>
           </Card>
         ))}
@@ -165,11 +166,11 @@ export default function DashboardPage() {
               <Card className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">{trip.boat_name}</p>
-                  <p className="text-xs text-slate-500" dir="ltr">
+                  <p className="text-xs text-ink-faint" dir="ltr">
                     {trip.departure_date}
                   </p>
                 </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">
+                <span className="rounded-full bg-sand-dim px-3 py-1 text-xs dark:bg-white/10">
                   {t(`trips.${STATUS_LABEL_KEY[trip.status]}`)}
                 </span>
               </Card>

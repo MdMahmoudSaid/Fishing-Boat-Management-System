@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { TripForm } from "@/components/forms/TripForm";
 
 type TripStatus = "preparing" | "at_sea" | "returned" | "closed";
@@ -38,6 +39,13 @@ const STATUS_LABEL_KEY = {
   returned: "statusReturned",
   closed: "statusClosed",
 } as const;
+
+const STATUS_BADGE_CLASS: Record<TripStatus, string> = {
+  preparing: "bg-sand-dim text-ink-soft dark:bg-white/10 dark:text-sand/70",
+  at_sea: "bg-sea-soft text-sea",
+  returned: "bg-rope-soft text-rope-dark",
+  closed: "bg-success-soft text-success",
+};
 
 export default function TripsPage() {
   const powersync = usePowerSync();
@@ -91,21 +99,25 @@ export default function TripsPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t("trips.title")}</h1>
-        <Button
-          onClick={() => {
-            setError(null);
-            setFormOpen(true);
-          }}
-          disabled={!boats || boats.length === 0}
-        >
-          {t("common.add")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("trips.title")}
+        backHref="/"
+        action={
+          <Button
+            onClick={() => {
+              setError(null);
+              setFormOpen(true);
+            }}
+            disabled={!boats || boats.length === 0}
+            className="px-3"
+          >
+            {t("common.add")}
+          </Button>
+        }
+      />
 
       {(!boats || boats.length === 0) && (
-        <p className="text-sm text-slate-500">{t("trips.noBoatsAvailable")}</p>
+        <p className="text-sm text-ink-faint">{t("trips.noBoatsAvailable")}</p>
       )}
 
       {boats && boats.length > 0 && (
@@ -133,20 +145,22 @@ export default function TripsPage() {
       )}
 
       {(!filteredRows || filteredRows.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
         {filteredRows?.map((row) => (
           <Link key={row.id} href={`/trips/${row.id}`}>
-            <Card className="flex items-center justify-between">
+            <Card className="flex items-center justify-between transition-shadow hover:shadow-md">
               <div>
-                <p className="font-medium">{row.boat_name}</p>
-                <p className="text-xs text-slate-500" dir="ltr">
+                <p className="font-medium text-ink dark:text-sand">{row.boat_name}</p>
+                <p className="text-xs text-ink-faint" dir="ltr">
                   {row.departure_date}
                 </p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[row.status]}`}
+              >
                 {t(`trips.${STATUS_LABEL_KEY[row.status]}`)}
               </span>
             </Card>
@@ -155,7 +169,7 @@ export default function TripsPage() {
       </div>
 
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title={t("common.add")}>
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
         <TripForm
           boats={boats ?? []}
           defaultCrewPaymentMethod={defaultCrewPaymentMethod}

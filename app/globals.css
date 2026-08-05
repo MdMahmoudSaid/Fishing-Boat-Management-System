@@ -1,18 +1,61 @@
 @import "tailwindcss";
 
+/* Identité visuelle — voir docs/PROJECT_PHASES.md pour le contexte produit.
+   Palette ancrée dans le sujet (port de pêche mauritanien) plutôt que les
+   gris neutres par défaut : encre marine, sable chaud, accent "corde/filet"
+   orangé, sarcelle pour les statuts. */
+@theme {
+  --color-ink: #0b1220;
+  --color-ink-soft: #4b5768;
+  --color-ink-faint: #8b94a3;
+
+  --color-sea: #146574;
+  --color-sea-soft: #e4eef0;
+
+  --color-rope: #c1652e;
+  --color-rope-dark: #9c4e22;
+  --color-rope-soft: #fbebe0;
+
+  --color-sand: #f7f2e9;
+  --color-sand-dim: #ece3d2;
+  --color-foam: #ffffff;
+
+  --color-success: #2f7d5c;
+  --color-success-soft: #e3f0ea;
+  --color-danger: #b43c34;
+  --color-danger-soft: #f7e4e2;
+
+  --font-display: var(--font-display), "El Messiri", ui-serif, serif;
+  --font-body: var(--font-body), "IBM Plex Sans Arabic", ui-sans-serif, sans-serif;
+}
+
 html,
 body {
   height: 100%;
 }
 
 body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--color-sand);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
 }
 
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: var(--color-ink);
+    color: var(--color-sand);
   }
+}
+
+/* Focus clavier visible partout (accessibilité), cohérent avec l'accent. */
+:focus-visible {
+  outline: 2px solid var(--color-rope);
+  outline-offset: 2px;
 }

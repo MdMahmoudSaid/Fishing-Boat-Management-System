@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface ExpenseReportRow {
   category_name: string;
@@ -30,18 +30,15 @@ export default function ExpenseReportPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <Link href="/reports" className="text-sm underline">
-        {t("reports.title")}
-      </Link>
-      <h1 className="text-xl font-bold">{t("reports.expenseReport")}</h1>
+      <PageHeader title={t("reports.expenseReport")} backHref="/reports" />
 
       <Card className="flex items-center justify-between">
-        <span className="text-sm text-slate-500">{t("expenses.total")}</span>
+        <span className="text-sm text-ink-faint">{t("expenses.total")}</span>
         <span className="font-semibold">{formatCurrency(grandTotal)}</span>
       </Card>
 
       {(!rows || rows.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -49,7 +46,7 @@ export default function ExpenseReportPage() {
           <Card key={row.category_name} className="flex items-center justify-between">
             <div>
               <p className="font-medium">{row.category_name}</p>
-              <p className="text-xs text-slate-500" dir="ltr">
+              <p className="text-xs text-ink-faint" dir="ltr">
                 {row.count}
               </p>
             </div>

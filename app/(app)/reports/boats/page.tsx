@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface BoatReportRow {
   id: string;
@@ -35,13 +35,10 @@ export default function BoatReportPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
-      <Link href="/reports" className="text-sm underline">
-        {t("reports.title")}
-      </Link>
-      <h1 className="text-xl font-bold">{t("reports.boatReport")}</h1>
+      <PageHeader title={t("reports.boatReport")} backHref="/reports" />
 
       {(!rows || rows.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -52,19 +49,19 @@ export default function BoatReportPage() {
               <p className="font-medium">{row.name}</p>
               <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
                 <div>
-                  <p className="text-xs text-slate-400">{t("boats.tripsCount")}</p>
+                  <p className="text-xs text-ink-faint">{t("boats.tripsCount")}</p>
                   <p>{row.trips_count}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">{t("boats.revenue")}</p>
+                  <p className="text-xs text-ink-faint">{t("boats.revenue")}</p>
                   <p>{formatCurrency(row.revenue)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">{t("boats.expensesTotal")}</p>
+                  <p className="text-xs text-ink-faint">{t("boats.expensesTotal")}</p>
                   <p>{formatCurrency(row.expenses_total)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400">{t("boats.profit")}</p>
+                  <p className="text-xs text-ink-faint">{t("boats.profit")}</p>
                   <p className="font-semibold">{formatCurrency(profit)}</p>
                 </div>
               </div>

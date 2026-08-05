@@ -27,8 +27,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (loading || !session) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-slate-500">{t("common.loading")}</p>
+      <main className="flex min-h-screen items-center justify-center bg-sand dark:bg-ink">
+        <p className="text-sm text-ink-faint">{t("common.loading")}</p>
       </main>
     );
   }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { usePowerSync, useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { BoatForm } from "@/components/forms/BoatForm";
 
 interface BoatRow {
@@ -35,6 +37,12 @@ const STATUS_LABEL_KEY: Record<BoatStatus, "statusActive" | "statusMaintenance" 
   active: "statusActive",
   maintenance: "statusMaintenance",
   in_trip: "statusInTrip",
+};
+
+const STATUS_BADGE_CLASS: Record<BoatStatus, string> = {
+  active: "bg-success-soft text-success",
+  maintenance: "bg-rope-soft text-rope-dark",
+  in_trip: "bg-sea-soft text-sea",
 };
 
 // Agrégats calculés par sous-requêtes corrélées (pas de JOIN direct entre
@@ -86,19 +94,28 @@ export default function BoatsPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t("boats.title")}</h1>
-        <Button onClick={() => setFormOpen(true)}>{t("common.add")}</Button>
-      </div>
-
-      <Input
-        placeholder={t("filters.search")}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
+      <PageHeader
+        title={t("boats.title")}
+        backHref="/"
+        action={
+          <Button onClick={() => setFormOpen(true)} className="px-3">
+            {t("common.add")}
+          </Button>
+        }
       />
 
+      <div className="relative">
+        <Search size={16} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-ink-faint" />
+        <Input
+          placeholder={t("filters.search")}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="ps-9"
+        />
+      </div>
+
       {(!filteredRows || filteredRows.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="py-6 text-center text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -108,38 +125,47 @@ export default function BoatsPage() {
             <Card key={row.id} className="flex flex-col gap-3">
               <div className="flex items-start justify-between">
                 <div>
-                  <Link href={`/boats/${row.id}`} className="font-medium underline">
+                  <Link
+                    href={`/boats/${row.id}`}
+                    className="font-display text-base font-semibold text-ink hover:text-rope dark:text-sand"
+                  >
                     {row.name}
                   </Link>
                   {row.captain_name && (
-                    <p className="text-xs text-slate-500">{row.captain_name}</p>
+                    <p className="text-xs text-ink-faint">{row.captain_name}</p>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[row.status]}`}
+                  >
                     {t(`boats.${STATUS_LABEL_KEY[row.status]}`)}
                   </span>
-                  <Button variant="danger" onClick={() => setPendingDeleteId(row.id)}>
+                  <Button
+                    variant="danger"
+                    onClick={() => setPendingDeleteId(row.id)}
+                    className="px-3 py-1.5 text-xs"
+                  >
                     {t("common.delete")}
                   </Button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-400 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 border-t border-sand-dim pt-3 text-xs text-ink-soft dark:border-white/10 sm:grid-cols-4">
                 <div>
-                  <p className="text-slate-400">{t("boats.tripsCount")}</p>
-                  <p className="font-medium">{row.trips_count}</p>
+                  <p className="text-ink-faint">{t("boats.tripsCount")}</p>
+                  <p className="font-medium text-ink dark:text-sand">{row.trips_count}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400">{t("boats.revenue")}</p>
-                  <p className="font-medium">{formatCurrency(row.revenue)}</p>
+                  <p className="text-ink-faint">{t("boats.revenue")}</p>
+                  <p className="font-medium text-ink dark:text-sand">{formatCurrency(row.revenue)}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400">{t("boats.expensesTotal")}</p>
-                  <p className="font-medium">{formatCurrency(row.expenses_total)}</p>
+                  <p className="text-ink-faint">{t("boats.expensesTotal")}</p>
+                  <p className="font-medium text-ink dark:text-sand">{formatCurrency(row.expenses_total)}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400">{t("boats.profit")}</p>
-                  <p className="font-medium">{formatCurrency(profit)}</p>
+                  <p className="text-ink-faint">{t("boats.profit")}</p>
+                  <p className="font-medium text-ink dark:text-sand">{formatCurrency(profit)}</p>
                 </div>
               </div>
             </Card>

@@ -2,7 +2,6 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import Link from "next/link";
 import { usePowerSync, useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
@@ -10,6 +9,7 @@ import { createCatch, type CatchInput } from "@/lib/db/catches";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { CatchForm } from "@/components/forms/CatchForm";
 
 interface CatchRow {
@@ -84,24 +84,32 @@ export default function TripCatchesPage() {
     setFormOpen(false);
   }
 
-  const canAdd = (categories?.length ?? 0) > 0 && (qualityLevels?.length ?? 0) > 0;
+  const hasCategories = (categories?.length ?? 0) > 0;
+  const hasQualityLevels = (qualityLevels?.length ?? 0) > 0;
+  const canAdd = hasCategories && hasQualityLevels;
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <Link href={`/trips/${params.id}`} className="text-sm underline">
-        {t("trips.title")}
-      </Link>
+      <PageHeader
+        title={t("catches.title")}
+        backHref={`/trips/${params.id}`}
+        action={
+          <Button onClick={() => setFormOpen(true)} disabled={!canAdd} className="px-3">
+            {t("common.add")}
+          </Button>
+        }
+      />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t("catches.title")}</h1>
-        <Button onClick={() => setFormOpen(true)} disabled={!canAdd}>
-          {t("common.add")}
-        </Button>
-      </div>
+      {!hasCategories && (
+        <p className="text-sm text-ink-faint">{t("catches.noFishCategoriesAvailable")}</p>
+      )}
+      {hasCategories && !hasQualityLevels && (
+        <p className="text-sm text-ink-faint">{t("catches.noFishQualityLevelsAvailable")}</p>
+      )}
 
       {summary && summary.length > 0 && (
         <Card className="flex flex-col gap-2">
-          <span className="text-sm font-medium text-slate-500">{t("catches.total")}</span>
+          <span className="text-sm font-medium text-ink-faint">{t("catches.total")}</span>
           {summary.map((row, index) => (
             <div key={index} className="flex justify-between text-sm">
               <span>
@@ -116,7 +124,7 @@ export default function TripCatchesPage() {
       )}
 
       {(!rows || rows.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -124,7 +132,7 @@ export default function TripCatchesPage() {
           <Card key={row.id} className="flex items-center justify-between">
             <div>
               <p className="font-medium">{row.fish_category_name}</p>
-              <p className="text-xs text-slate-500">{row.fish_quality_level_name}</p>
+              <p className="text-xs text-ink-faint">{row.fish_quality_level_name}</p>
             </div>
             <span dir="ltr">
               {row.quantity} {row.unit}

@@ -1,11 +1,11 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { computeRemainingStock } from "@/lib/calculations/inventory";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface CatchRow {
   fish_category_id: string;
@@ -79,14 +79,10 @@ export default function TripInventoryPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <Link href={`/trips/${params.id}`} className="text-sm underline">
-        {t("trips.title")}
-      </Link>
-
-      <h1 className="text-xl font-bold">{t("inventory.title")}</h1>
+      <PageHeader title={t("inventory.title")} backHref={`/trips/${params.id}`} />
 
       {stock.length === 0 && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -97,27 +93,27 @@ export default function TripInventoryPage() {
           >
             <div>
               <p className="font-medium">{categoryName(group.fishCategoryId)}</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-faint">
                 {qualityName(group.fishQualityLevelId)}
               </p>
             </div>
             <div className="grid grid-cols-3 gap-4 text-center text-sm">
               <div>
-                <p className="text-xs text-slate-400">{t("inventory.caught")}</p>
+                <p className="text-xs text-ink-faint">{t("inventory.caught")}</p>
                 <p dir="ltr">
                   {group.caughtQuantity}{" "}
                   {unitFor(group.fishCategoryId, group.fishQualityLevelId)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">{t("inventory.sold")}</p>
+                <p className="text-xs text-ink-faint">{t("inventory.sold")}</p>
                 <p dir="ltr">
                   {group.soldQuantity}{" "}
                   {unitFor(group.fishCategoryId, group.fishQualityLevelId)}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-slate-400">{t("inventory.remaining")}</p>
+                <p className="text-xs text-ink-faint">{t("inventory.remaining")}</p>
                 <p className="font-semibold" dir="ltr">
                   {group.remainingQuantity}{" "}
                   {unitFor(group.fishCategoryId, group.fishQualityLevelId)}

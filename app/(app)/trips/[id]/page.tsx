@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import { Wallet, Fish, ShoppingCart, Package } from "lucide-react";
 import { usePowerSync, useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
@@ -25,6 +26,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { TripForm } from "@/components/forms/TripForm";
 import { TripCrewAssignmentForm } from "@/components/forms/TripCrewAssignmentForm";
 
@@ -62,6 +64,13 @@ const STATUS_LABEL_KEY = {
   returned: "statusReturned",
   closed: "statusClosed",
 } as const;
+
+const STATUS_BADGE_CLASS: Record<TripStatus, string> = {
+  preparing: "bg-sand-dim text-ink-soft dark:bg-white/10 dark:text-sand/70",
+  at_sea: "bg-sea-soft text-sea",
+  returned: "bg-rope-soft text-rope-dark",
+  closed: "bg-success-soft text-success",
+};
 
 export default function TripDetailPage() {
   const params = useParams<{ id: string }>();
@@ -104,7 +113,7 @@ export default function TripDetailPage() {
   if (!trip) {
     return (
       <main className="p-6">
-        <p className="text-sm text-slate-500">{t("common.loading")}</p>
+        <p className="text-sm text-ink-faint">{t("common.loading")}</p>
       </main>
     );
   }
@@ -182,37 +191,37 @@ export default function TripDetailPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <Link href="/trips" className="text-sm underline">
-        {t("trips.title")}
-      </Link>
-
-      <Card className="flex flex-col gap-2">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-xl font-bold">{trip.boat_name}</h1>
-            {trip.captain_name && (
-              <p className="text-sm text-slate-500">{trip.captain_name}</p>
-            )}
-          </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs dark:bg-slate-800">
+      <PageHeader
+        title={trip.boat_name}
+        backHref="/trips"
+        action={
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_BADGE_CLASS[trip.status]}`}
+          >
             {t(`trips.${STATUS_LABEL_KEY[trip.status]}`)}
           </span>
-        </div>
+        }
+      />
+
+      <Card className="flex flex-col gap-2">
+        {trip.captain_name && (
+          <p className="text-sm text-ink-faint">{trip.captain_name}</p>
+        )}
 
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
-            <p className="text-xs text-slate-400">{t("trips.departureDate")}</p>
+            <p className="text-xs text-ink-faint">{t("trips.departureDate")}</p>
             <p dir="ltr">{trip.departure_date}</p>
           </div>
           {trip.expected_return_date && (
             <div>
-              <p className="text-xs text-slate-400">{t("trips.expectedReturnDate")}</p>
+              <p className="text-xs text-ink-faint">{t("trips.expectedReturnDate")}</p>
               <p dir="ltr">{trip.expected_return_date}</p>
             </div>
           )}
           {trip.actual_return_date && (
             <div>
-              <p className="text-xs text-slate-400">{t("trips.actualReturnDate")}</p>
+              <p className="text-xs text-ink-faint">{t("trips.actualReturnDate")}</p>
               <p dir="ltr">{trip.actual_return_date}</p>
             </div>
           )}
@@ -220,7 +229,7 @@ export default function TripDetailPage() {
 
         {trip.notes && <p className="text-sm">{trip.notes}</p>}
 
-        {statusError && <p className="text-sm text-red-600">{statusError}</p>}
+        {statusError && <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{statusError}</p>}
 
         <div className="mt-2 flex flex-wrap gap-2">
           {next && (
@@ -236,19 +245,25 @@ export default function TripDetailPage() {
           </Button>
         </div>
 
-        <div className="mt-2 flex gap-3 text-sm">
-          <Link href={`/trips/${trip.id}/expenses`} className="underline">
-            {t("expenses.title")}
-          </Link>
-          <Link href={`/trips/${trip.id}/catches`} className="underline">
-            {t("catches.title")}
-          </Link>
-          <Link href={`/trips/${trip.id}/sales`} className="underline">
-            {t("sales.title")}
-          </Link>
-          <Link href={`/trips/${trip.id}/inventory`} className="underline">
-            {t("inventory.title")}
-          </Link>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[
+            { href: `/trips/${trip.id}/expenses`, label: t("expenses.title"), icon: Wallet },
+            { href: `/trips/${trip.id}/catches`, label: t("catches.title"), icon: Fish },
+            { href: `/trips/${trip.id}/sales`, label: t("sales.title"), icon: ShoppingCart },
+            { href: `/trips/${trip.id}/inventory`, label: t("inventory.title"), icon: Package },
+          ].map((link) => {
+            const Icon = link.icon;
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex flex-col items-center gap-1.5 rounded-xl bg-sand px-2 py-3 text-center text-xs font-medium text-ink-soft transition-colors hover:bg-rope-soft hover:text-rope-dark dark:bg-white/5 dark:text-sand/70 dark:hover:bg-white/10"
+              >
+                <Icon size={18} />
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
       </Card>
 
@@ -265,14 +280,14 @@ export default function TripDetailPage() {
         </div>
 
         {(!crewRows || crewRows.length === 0) && (
-          <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+          <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
         )}
 
         {crewRows?.map((row) => (
-          <div key={row.id} className="flex items-center justify-between border-t border-slate-100 pt-2 dark:border-slate-800">
+          <div key={row.id} className="flex items-center justify-between border-t border-sand-dim pt-2 dark:border-white/10">
             <div>
               <p className="font-medium">{row.crew_member_name}</p>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-ink-faint">
                 {row.payment_type === "fixed"
                   ? formatCurrency(row.fixed_amount ?? 0)
                   : `${row.percentage ?? 0}%`}

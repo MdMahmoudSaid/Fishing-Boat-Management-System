@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface DebtRow {
   buyer_id: string;
@@ -36,13 +36,10 @@ export default function CustomerDebtReportPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <Link href="/reports" className="text-sm underline">
-        {t("reports.title")}
-      </Link>
-      <h1 className="text-xl font-bold">{t("reports.customerDebtReport")}</h1>
+      <PageHeader title={t("reports.customerDebtReport")} backHref="/reports" />
 
       {withBalance.length === 0 && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">

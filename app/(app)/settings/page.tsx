@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, FormEvent } from "react";
 import { usePowerSync, useQuery } from "@powersync/react";
 import type { AbstractPowerSyncDatabase } from "@powersync/web";
+import { Fish, Award, Wallet, ChevronLeft, Building2 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { updateCompanyName } from "@/lib/db/companies";
@@ -15,6 +16,13 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
+import { PageHeader } from "@/components/ui/PageHeader";
+
+const SETTINGS_LINKS = [
+  { href: "/settings/fish-categories", labelKey: "settings.fishCategories", icon: Fish },
+  { href: "/settings/fish-quality-levels", labelKey: "settings.fishQualityLevels", icon: Award },
+  { href: "/settings/expense-categories", labelKey: "settings.expenseCategories", icon: Wallet },
+] as const;
 
 interface CompanyRow {
   name: string;
@@ -81,10 +89,13 @@ export default function SettingsPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <h1 className="text-xl font-bold">{t("settings.title")}</h1>
+      <PageHeader title={t("settings.title")} backHref="/" />
 
       <Card>
-        <h2 className="mb-4 font-semibold">{t("settings.company")}</h2>
+        <h2 className="mb-4 flex items-center gap-2 font-semibold text-ink dark:text-sand">
+          <Building2 size={16} className="text-rope" />
+          {t("settings.company")}
+        </h2>
         <div className="flex flex-col gap-4">
           {company && companyId && (
             <CompanyNameField
@@ -114,17 +125,24 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      <Card className="flex flex-col gap-3">
-        <Link href="/settings/fish-categories" className="underline">
-          {t("settings.fishCategories")}
-        </Link>
-        <Link href="/settings/fish-quality-levels" className="underline">
-          {t("settings.fishQualityLevels")}
-        </Link>
-        <Link href="/settings/expense-categories" className="underline">
-          {t("settings.expenseCategories")}
-        </Link>
-      </Card>
+      <div className="flex flex-col divide-y divide-sand-dim overflow-hidden rounded-2xl border border-sand-dim bg-foam shadow-[0_1px_2px_rgba(11,18,32,0.04)] dark:divide-white/10 dark:border-white/10 dark:bg-white/5">
+        {SETTINGS_LINKS.map((link) => {
+          const Icon = link.icon;
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="flex items-center gap-3 px-4 py-3.5 text-sm text-ink transition-colors hover:bg-sand dark:text-sand dark:hover:bg-white/5"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rope-soft text-rope dark:bg-white/10">
+                <Icon size={16} />
+              </span>
+              <span className="flex-1 font-medium">{t(link.labelKey)}</span>
+              <ChevronLeft size={16} className="text-ink-faint" />
+            </Link>
+          );
+        })}
+      </div>
     </main>
   );
 }

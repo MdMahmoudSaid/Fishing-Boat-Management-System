@@ -61,7 +61,7 @@ export function TripForm({
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {boatLocked ? (
         <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <span className="text-sm font-medium text-ink-soft dark:text-sand/80">
             {t("trips.boat")}
           </span>
           <span className="text-sm">{boatName}</span>

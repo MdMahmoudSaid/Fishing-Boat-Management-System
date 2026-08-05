@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { FishCategoryForm } from "@/components/forms/FishCategoryForm";
 
 interface FishCategoryRow {
@@ -65,13 +66,18 @@ export default function FishCategoriesPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t("settings.fishCategories")}</h1>
-        <Button onClick={openCreate}>{t("common.add")}</Button>
-      </div>
+      <PageHeader
+        title={t("settings.fishCategories")}
+        backHref="/settings"
+        action={
+          <Button onClick={openCreate} className="px-3">
+            {t("common.add")}
+          </Button>
+        }
+      />
 
       {(!rows || rows.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -79,7 +85,7 @@ export default function FishCategoriesPage() {
           <Card key={row.id} className="flex items-center justify-between">
             <div>
               <p className="font-medium">{row.name}</p>
-              <p className="text-xs text-slate-500">{row.default_unit}</p>
+              <p className="text-xs text-ink-faint">{row.default_unit}</p>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => openEdit(row)}>

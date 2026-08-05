@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { Card } from "@/components/ui/Card";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 interface SaleRow {
   id: string;
@@ -61,13 +61,10 @@ export default function SalesReportPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <Link href="/reports" className="text-sm underline">
-        {t("reports.title")}
-      </Link>
-      <h1 className="text-xl font-bold">{t("reports.salesReport")}</h1>
+      <PageHeader title={t("reports.salesReport")} backHref="/reports" />
 
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold text-ink-faint">
           {t("reports.buyer")}
         </h2>
         <div className="flex flex-col gap-1">
@@ -81,7 +78,7 @@ export default function SalesReportPage() {
       </div>
 
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold text-ink-faint">
           {t("catches.fishCategory")}
         </h2>
         <div className="flex flex-col gap-1">
@@ -98,21 +95,21 @@ export default function SalesReportPage() {
       </div>
 
       <div>
-        <h2 className="mb-2 text-sm font-semibold text-slate-500">
+        <h2 className="mb-2 text-sm font-semibold text-ink-faint">
           {t("sales.title")}
         </h2>
         {(!sales || sales.length === 0) && (
-          <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+          <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
         )}
         <div className="flex flex-col gap-1">
           {sales?.map((sale) => (
             <Card key={sale.id} className="flex items-center justify-between">
               <div>
                 <p className="text-sm">{sale.buyer_name}</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-ink-faint">
                   {sale.fish_category_name} — {sale.fish_quality_level_name}
                 </p>
-                <p className="text-xs text-slate-500" dir="ltr">
+                <p className="text-xs text-ink-faint" dir="ltr">
                   {sale.date}
                 </p>
               </div>

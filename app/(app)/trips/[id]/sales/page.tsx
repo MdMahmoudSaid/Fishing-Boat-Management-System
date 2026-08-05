@@ -2,7 +2,6 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import Link from "next/link";
 import { usePowerSync, useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
@@ -13,6 +12,7 @@ import { createSalePayment, type SalePaymentInput } from "@/lib/db/salePayments"
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { SaleForm, type StockOption } from "@/components/forms/SaleForm";
 import { SalePaymentForm } from "@/components/forms/SalePaymentForm";
 
@@ -142,11 +142,18 @@ export default function TripSalesPage() {
   const [error, setError] = useState<string | null>(null);
   const [paymentSaleId, setPaymentSaleId] = useState<string | null>(null);
 
-  async function handleSubmit(input: SaleInput) {
+  async function handleSubmit(input: SaleInput, paidNow: number | null) {
     if (!companyId) return;
     setError(null);
     try {
-      await createSale(powersync, companyId, params.id, input);
+      const saleId = await createSale(powersync, companyId, params.id, input);
+      if (paidNow) {
+        await createSalePayment(powersync, companyId, saleId, {
+          amount: paidNow,
+          date: input.date,
+          notes: null,
+        });
+      }
       setFormOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -167,29 +174,32 @@ export default function TripSalesPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <Link href={`/trips/${params.id}`} className="text-sm underline">
-        {t("trips.title")}
-      </Link>
+      <PageHeader
+        title={t("sales.title")}
+        backHref={`/trips/${params.id}`}
+        action={
+          <Button
+            onClick={() => {
+              setError(null);
+              setFormOpen(true);
+            }}
+            disabled={!buyers || buyers.length === 0 || stockOptions.length === 0}
+            className="px-3"
+          >
+            {t("common.add")}
+          </Button>
+        }
+      />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t("sales.title")}</h1>
-        <Button
-          onClick={() => {
-            setError(null);
-            setFormOpen(true);
-          }}
-          disabled={!buyers || buyers.length === 0 || stockOptions.length === 0}
-        >
-          {t("common.add")}
-        </Button>
-      </div>
-
-      {stockOptions.length === 0 && (
-        <p className="text-sm text-slate-500">{t("sales.noStockAvailable")}</p>
+      {(!buyers || buyers.length === 0) && (
+        <p className="text-sm text-ink-faint">{t("sales.noBuyersAvailable")}</p>
+      )}
+      {buyers && buyers.length > 0 && stockOptions.length === 0 && (
+        <p className="text-sm text-ink-faint">{t("sales.noStockAvailable")}</p>
       )}
 
       {(!sales || sales.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -201,17 +211,17 @@ export default function TripSalesPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="font-medium">{sale.buyer_name}</p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-ink-faint">
                     {sale.fish_category_name} — {sale.fish_quality_level_name}
                   </p>
-                  <p className="text-xs text-slate-500" dir="ltr">
+                  <p className="text-xs text-ink-faint" dir="ltr">
                     {sale.date}
                   </p>
                 </div>
                 <p className="font-semibold">{formatCurrency(sale.total_amount)}</p>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">
+                <span className="text-ink-faint">
                   {t("sales.paid")}: {formatCurrency(paid)} — {t("sales.outstanding")}:{" "}
                   {formatCurrency(outstanding)}
                 </span>
@@ -227,7 +237,7 @@ export default function TripSalesPage() {
       </div>
 
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title={t("common.add")}>
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
+        {error && <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
         <SaleForm
           buyers={buyers ?? []}
           stockOptions={stockOptions}

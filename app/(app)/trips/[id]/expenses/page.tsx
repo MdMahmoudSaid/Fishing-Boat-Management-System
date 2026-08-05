@@ -2,7 +2,6 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import Link from "next/link";
 import { usePowerSync, useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import { formatCurrency } from "@/lib/format";
@@ -13,6 +12,7 @@ import { queuePhotoForUpload } from "@/lib/sync/photoUploadQueue";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { ExpenseForm } from "@/components/forms/ExpenseForm";
 import { ExpenseCategoryForm } from "@/components/forms/ExpenseCategoryForm";
 
@@ -77,24 +77,31 @@ export default function TripExpensesPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <Link href={`/trips/${params.id}`} className="text-sm underline">
-        {t("trips.title")}
-      </Link>
+      <PageHeader
+        title={t("expenses.title")}
+        backHref={`/trips/${params.id}`}
+        action={
+          <Button
+            onClick={() => setFormOpen(true)}
+            disabled={!categories || categories.length === 0}
+            className="px-3"
+          >
+            {t("common.add")}
+          </Button>
+        }
+      />
 
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t("expenses.title")}</h1>
-        <Button onClick={() => setFormOpen(true)} disabled={!categories || categories.length === 0}>
-          {t("common.add")}
-        </Button>
-      </div>
+      {(!categories || categories.length === 0) && (
+        <p className="text-sm text-ink-faint">{t("expenses.noCategoriesAvailable")}</p>
+      )}
 
       <Card className="flex items-center justify-between">
-        <span className="text-sm text-slate-500">{t("expenses.total")}</span>
+        <span className="text-sm text-ink-faint">{t("expenses.total")}</span>
         <span className="font-semibold">{formatCurrency(total)}</span>
       </Card>
 
       {(!rows || rows.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -104,7 +111,7 @@ export default function TripExpensesPage() {
             <Card key={row.id} className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{row.category_name}</p>
-                <p className="text-xs text-slate-500" dir="ltr">
+                <p className="text-xs text-ink-faint" dir="ltr">
                   {row.date}
                 </p>
                 {row.description && <p className="text-sm">{row.description}</p>}
@@ -112,7 +119,7 @@ export default function TripExpensesPage() {
               <div className="text-end">
                 <p className="font-medium">{formatCurrency(row.amount)}</p>
                 {statusKey && (
-                  <p className="text-xs text-slate-400">{t(`expenses.${statusKey}`)}</p>
+                  <p className="text-xs text-ink-faint">{t(`expenses.${statusKey}`)}</p>
                 )}
               </div>
             </Card>

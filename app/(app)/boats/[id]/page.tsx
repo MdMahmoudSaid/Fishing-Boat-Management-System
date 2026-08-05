@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import Link from "next/link";
 import { usePowerSync, useQuery } from "@powersync/react";
 import { t } from "@/lib/i18n";
 import {
@@ -15,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { BoatForm } from "@/components/forms/BoatForm";
 
 interface BoatRow {
@@ -54,26 +54,23 @@ export default function BoatDetailPage() {
   if (!boat) {
     return (
       <main className="p-6">
-        <p className="text-sm text-slate-500">{t("common.loading")}</p>
+        <p className="text-sm text-ink-faint">{t("common.loading")}</p>
       </main>
     );
   }
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <Link href="/boats" className="text-sm underline">
-        {t("boats.title")}
-      </Link>
+      <PageHeader title={boat.name} backHref="/boats" />
 
       <Card className="flex flex-col gap-2">
-        <h1 className="text-xl font-bold">{boat.name}</h1>
         {boat.registration_number && (
-          <p className="text-sm text-slate-500" dir="ltr">
+          <p className="text-sm text-ink-faint" dir="ltr">
             {boat.registration_number}
           </p>
         )}
         {boat.captain_name && (
-          <p className="text-sm text-slate-500">{boat.captain_name}</p>
+          <p className="text-sm text-ink-faint">{boat.captain_name}</p>
         )}
         {boat.notes && <p className="text-sm">{boat.notes}</p>}
 

@@ -19,7 +19,8 @@
     "@supabase/supabase-js": "latest",
     "@powersync/web": "^2.1.0",
     "@powersync/react": "^2.0.0",
-    "@serwist/next": "latest"
+    "@serwist/next": "latest",
+    "lucide-react": "latest"
   },
   "devDependencies": {
     "tsx": "latest",

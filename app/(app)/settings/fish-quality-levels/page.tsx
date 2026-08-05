@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { FishQualityLevelForm } from "@/components/forms/FishQualityLevelForm";
 
 interface FishQualityLevelRow {
@@ -80,15 +81,22 @@ export default function FishQualityLevelsPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t("settings.fishQualityLevels")}</h1>
-        <Button onClick={openCreate} disabled={!categories || categories.length === 0}>
-          {t("common.add")}
-        </Button>
-      </div>
+      <PageHeader
+        title={t("settings.fishQualityLevels")}
+        backHref="/settings"
+        action={
+          <Button
+            onClick={openCreate}
+            disabled={!categories || categories.length === 0}
+            className="px-3"
+          >
+            {t("common.add")}
+          </Button>
+        }
+      />
 
       {(!rows || rows.length === 0) && (
-        <p className="text-sm text-slate-500">{t("common.noResults")}</p>
+        <p className="text-sm text-ink-faint">{t("common.noResults")}</p>
       )}
 
       <div className="flex flex-col gap-2">
@@ -96,7 +104,7 @@ export default function FishQualityLevelsPage() {
           <Card key={row.id} className="flex items-center justify-between">
             <div>
               <p className="font-medium">{row.name}</p>
-              <p className="text-xs text-slate-500">{row.fish_category_name}</p>
+              <p className="text-xs text-ink-faint">{row.fish_category_name}</p>
             </div>
             <div className="flex gap-2">
               <Button variant="secondary" onClick={() => openEdit(row)}>
