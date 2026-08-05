@@ -174,6 +174,34 @@ export async function advanceTripStatus(
   }
 }
 
+// Repasse un trip clôturé à 'returned' pour corriger une vente/dépense
+// oubliée avant la clôture (bug remonté en test live : computed_amount figé
+// avec des données incomplètes, sans aucun moyen de le corriger). Le
+// paiement équipage n'est refigé qu'à la RE-clôture, avec les données à
+// jour — on efface donc computed_amount pour ne pas afficher un montant
+// obsolète pendant la correction. Refuse si le bateau a entretemps une
+// autre sortie active (même règle que la création, §7).
+export async function reopenTrip(
+  db: AbstractPowerSyncDatabase,
+  trip: { id: string; boatId: string; status: TripStatus },
+): Promise<void> {
+  if (trip.status !== "closed") return;
+
+  const existingTrips = await db.getAll<ExistingTripRow>(
+    "SELECT id, status FROM trips WHERE boat_id = ? AND deleted_at IS NULL",
+    [trip.boatId],
+  );
+  assertNoActiveTripForBoat(existingTrips, trip.id);
+
+  await db.execute(`UPDATE trips SET status = 'returned', updated_at = ? WHERE id = ?`, [
+    new Date().toISOString(),
+    trip.id,
+  ]);
+  await db.execute(`UPDATE trip_crew SET computed_amount = NULL WHERE trip_id = ?`, [
+    trip.id,
+  ]);
+}
+
 // Soft delete uniquement (§7) ; libère le bateau (redevient 'active') s'il
 // était marqué comme occupé par ce trip.
 export async function softDeleteTrip(

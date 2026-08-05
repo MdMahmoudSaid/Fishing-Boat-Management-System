@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePowerSync } from "@powersync/react";
 import { useSession } from "@/lib/supabase/AuthProvider";
 import { registerPhotoUploadQueueListener } from "@/lib/sync/photoUploadQueue";
-import { t } from "@/lib/i18n";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { session, loading } = useSession();
@@ -26,11 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [session, powersync]);
 
   if (loading || !session) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-sand dark:bg-ink">
-        <p className="text-sm text-ink-faint">{t("common.loading")}</p>
-      </main>
-    );
+    return <LoadingScreen />;
   }
 
   return <>{children}</>;

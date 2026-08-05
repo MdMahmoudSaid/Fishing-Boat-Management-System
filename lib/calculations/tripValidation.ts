@@ -45,6 +45,19 @@ export function assertCanClose(trip: { actualReturnDate: string | null }): void 
   }
 }
 
+// Extension §7, suite à un bug remonté en test live : une fois clôturée,
+// une sortie ne doit plus recevoir de nouvelles dépenses/captures/ventes —
+// sinon trip_crew.computed_amount (déjà figé à la clôture) se désynchronise
+// silencieusement des données réelles. Il faut d'abord réouvrir la sortie
+// (voir reopenTrip) avant d'y ajouter quoi que ce soit.
+export function assertTripNotClosed(status: TripStatus): void {
+  if (status === "closed") {
+    throw new TripValidationError(
+      "السورتية مغلقة. أعد فتحها من صفحتها الرئيسية لإضافة بيانات جديدة.",
+    );
+  }
+}
+
 // Statut suivant dans la progression preparing → at_sea → returned → closed.
 // Retourne null si déjà au dernier statut (closed).
 export function nextTripStatus(current: TripStatus): TripStatus | null {

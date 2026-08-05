@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertNoActiveTripForBoat,
   assertCanClose,
+  assertTripNotClosed,
   nextTripStatus,
   boatStatusForTripStatus,
   TripValidationError,
@@ -54,6 +55,18 @@ describe("assertCanClose", () => {
     expect(() =>
       assertCanClose({ actualReturnDate: "2026-08-05" }),
     ).not.toThrow();
+  });
+});
+
+describe("assertTripNotClosed", () => {
+  it("throws when the trip is closed", () => {
+    expect(() => assertTripNotClosed("closed")).toThrow(TripValidationError);
+  });
+
+  it("does not throw for any non-closed status", () => {
+    expect(() => assertTripNotClosed("preparing")).not.toThrow();
+    expect(() => assertTripNotClosed("at_sea")).not.toThrow();
+    expect(() => assertTripNotClosed("returned")).not.toThrow();
   });
 });
 

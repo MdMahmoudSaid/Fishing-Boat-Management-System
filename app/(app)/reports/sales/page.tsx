@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PrintButton } from "@/components/ui/PrintButton";
 
 interface SaleRow {
   id: string;
@@ -61,7 +62,11 @@ export default function SalesReportPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-6 p-6">
-      <PageHeader title={t("reports.salesReport")} backHref="/reports" />
+      <PageHeader
+        title={t("reports.salesReport")}
+        backHref="/reports"
+        action={<PrintButton />}
+      />
 
       <div>
         <h2 className="mb-2 text-sm font-semibold text-ink-faint">

@@ -60,6 +60,10 @@ interface PaidRow {
   paid: number;
 }
 
+interface TripStatusRow {
+  status: "preparing" | "at_sea" | "returned" | "closed";
+}
+
 export default function TripSalesPage() {
   const params = useParams<{ id: string }>();
   const powersync = usePowerSync();
@@ -102,6 +106,11 @@ export default function TripSalesPage() {
      GROUP BY sp.sale_id`,
     [params.id],
   );
+  const { data: tripRows } = useQuery<TripStatusRow>(
+    "SELECT status FROM trips WHERE id = ?",
+    [params.id],
+  );
+  const tripClosed = tripRows?.[0]?.status === "closed";
 
   const stock = computeRemainingStock(
     (catches ?? []).map((c) => ({
@@ -183,7 +192,9 @@ export default function TripSalesPage() {
               setError(null);
               setFormOpen(true);
             }}
-            disabled={!buyers || buyers.length === 0 || stockOptions.length === 0}
+            disabled={
+              !buyers || buyers.length === 0 || stockOptions.length === 0 || tripClosed
+            }
             className="px-3"
           >
             {t("common.add")}
@@ -191,10 +202,14 @@ export default function TripSalesPage() {
         }
       />
 
-      {(!buyers || buyers.length === 0) && (
+      {tripClosed && (
+        <p className="text-sm text-ink-faint">{t("trips.tripClosedNoEdit")}</p>
+      )}
+
+      {!tripClosed && (!buyers || buyers.length === 0) && (
         <p className="text-sm text-ink-faint">{t("sales.noBuyersAvailable")}</p>
       )}
-      {buyers && buyers.length > 0 && stockOptions.length === 0 && (
+      {!tripClosed && buyers && buyers.length > 0 && stockOptions.length === 0 && (
         <p className="text-sm text-ink-faint">{t("sales.noStockAvailable")}</p>
       )}
 

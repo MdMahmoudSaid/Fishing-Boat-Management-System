@@ -40,6 +40,10 @@ interface FishQualityLevelOption {
   name: string;
 }
 
+interface TripStatusRow {
+  status: "preparing" | "at_sea" | "returned" | "closed";
+}
+
 export default function TripCatchesPage() {
   const params = useParams<{ id: string }>();
   const powersync = usePowerSync();
@@ -76,17 +80,29 @@ export default function TripCatchesPage() {
     [companyId ?? ""],
   );
 
+  const { data: tripRows } = useQuery<TripStatusRow>(
+    "SELECT status FROM trips WHERE id = ?",
+    [params.id],
+  );
+  const tripClosed = tripRows?.[0]?.status === "closed";
+
   const [formOpen, setFormOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(input: CatchInput) {
     if (!companyId) return;
-    await createCatch(powersync, companyId, params.id, input);
-    setFormOpen(false);
+    setError(null);
+    try {
+      await createCatch(powersync, companyId, params.id, input);
+      setFormOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }
 
   const hasCategories = (categories?.length ?? 0) > 0;
   const hasQualityLevels = (qualityLevels?.length ?? 0) > 0;
-  const canAdd = hasCategories && hasQualityLevels;
+  const canAdd = hasCategories && hasQualityLevels && !tripClosed;
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
@@ -100,11 +116,17 @@ export default function TripCatchesPage() {
         }
       />
 
-      {!hasCategories && (
-        <p className="text-sm text-ink-faint">{t("catches.noFishCategoriesAvailable")}</p>
-      )}
-      {hasCategories && !hasQualityLevels && (
-        <p className="text-sm text-ink-faint">{t("catches.noFishQualityLevelsAvailable")}</p>
+      {tripClosed ? (
+        <p className="text-sm text-ink-faint">{t("trips.tripClosedNoEdit")}</p>
+      ) : (
+        <>
+          {!hasCategories && (
+            <p className="text-sm text-ink-faint">{t("catches.noFishCategoriesAvailable")}</p>
+          )}
+          {hasCategories && !hasQualityLevels && (
+            <p className="text-sm text-ink-faint">{t("catches.noFishQualityLevelsAvailable")}</p>
+          )}
+        </>
       )}
 
       {summary && summary.length > 0 && (
@@ -142,6 +164,7 @@ export default function TripCatchesPage() {
       </div>
 
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title={t("common.add")}>
+        {error && <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
         <CatchForm
           categories={(categories ?? []).map((c) => ({
             id: c.id,

@@ -44,10 +44,20 @@ export function SaleForm({ buyers, stockOptions, onSubmit, onCancel }: SaleFormP
     quantity && salePrice ? Number(quantity) * Number(salePrice) : null;
   const paidNowExceedsTotal =
     totalAmount != null && paidNow !== "" && Number(paidNow) > totalAmount;
+  const quantityExceedsStock =
+    selectedStock != null &&
+    quantity !== "" &&
+    Number(quantity) > selectedStock.remainingQuantity;
+  // Message construit avec la quantité/unité réelles (t() ne supporte pas
+  // l'interpolation) — même approche que InsufficientStockError côté DB.
+  const quantityErrorMessage =
+    quantityExceedsStock && selectedStock
+      ? `الكمية تتجاوز المخزون المتاح (${selectedStock.remainingQuantity} ${selectedStock.unit})`
+      : undefined;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!selectedStock || paidNowExceedsTotal) return;
+    if (!selectedStock || paidNowExceedsTotal || quantityExceedsStock) return;
     setSubmitting(true);
     try {
       await onSubmit(
@@ -86,10 +96,10 @@ export function SaleForm({ buyers, stockOptions, onSubmit, onCancel }: SaleFormP
         label={`${t("sales.quantity")} (${selectedStock?.unit ?? ""})`}
         type="number"
         min="0.01"
-        max={selectedStock?.remainingQuantity}
         step="0.01"
         value={quantity}
         onChange={(e) => setQuantity(e.target.value)}
+        error={quantityErrorMessage}
         required
         dir="ltr"
       />
@@ -134,7 +144,10 @@ export function SaleForm({ buyers, stockOptions, onSubmit, onCancel }: SaleFormP
         <Button type="button" variant="secondary" onClick={onCancel}>
           {t("common.cancel")}
         </Button>
-        <Button type="submit" disabled={submitting || !selectedStock || paidNowExceedsTotal}>
+        <Button
+          type="submit"
+          disabled={submitting || !selectedStock || paidNowExceedsTotal || quantityExceedsStock}
+        >
           {t("common.save")}
         </Button>
       </div>

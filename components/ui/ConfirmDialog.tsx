@@ -8,16 +8,24 @@ interface ConfirmDialogProps {
   open: boolean;
   title: string;
   message: string;
+  // Par défaut : "حذف" en rouge, pour l'usage historique (soft delete, §7).
+  // Surchargeable pour les confirmations non destructives (ex : réouverture
+  // d'une sortie) où un bouton rouge "حذف" serait trompeur.
+  confirmLabel?: string;
+  confirmVariant?: "danger" | "primary";
   onConfirm: () => void;
   onCancel: () => void;
 }
 
 // Utilisé pour toute suppression (boats, trips, crew, buyers, catégories...)
-// — §7 exige une confirmation explicite avant chaque soft delete.
+// — §7 exige une confirmation explicite avant chaque soft delete — et pour
+// toute autre action qui mérite une confirmation explicite.
 export function ConfirmDialog({
   open,
   title,
   message,
+  confirmLabel,
+  confirmVariant = "danger",
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -28,8 +36,8 @@ export function ConfirmDialog({
         <Button variant="secondary" onClick={onCancel}>
           {t("common.cancel")}
         </Button>
-        <Button variant="danger" onClick={onConfirm}>
-          {t("common.delete")}
+        <Button variant={confirmVariant} onClick={onConfirm}>
+          {confirmLabel ?? t("common.delete")}
         </Button>
       </div>
     </Modal>

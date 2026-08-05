@@ -1,5 +1,6 @@
 import type { AbstractPowerSyncDatabase } from "@powersync/web";
 import { generateId } from "@/lib/id/generateId";
+import { assertTripNotClosed, type TripStatus } from "@/lib/calculations/tripValidation";
 
 export interface ExpenseInput {
   expenseCategoryId: string;
@@ -15,6 +16,12 @@ export async function createExpense(
   tripId: string,
   input: ExpenseInput,
 ): Promise<string> {
+  const [trip] = await db.getAll<{ status: TripStatus }>(
+    "SELECT status FROM trips WHERE id = ?",
+    [tripId],
+  );
+  if (trip) assertTripNotClosed(trip.status);
+
   const id = generateId();
   await db.execute(
     `INSERT INTO expenses (id, company_id, trip_id, expense_category_id, amount, date, description, photo_url, photo_local_status, created_at)

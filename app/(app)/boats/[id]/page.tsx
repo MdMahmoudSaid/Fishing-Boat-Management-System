@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { BoatForm } from "@/components/forms/BoatForm";
 
 interface BoatRow {
@@ -31,7 +32,7 @@ export default function BoatDetailPage() {
   const router = useRouter();
   const powersync = usePowerSync();
 
-  const { data: rows } = useQuery<BoatRow>(
+  const { data: rows, error: boatError } = useQuery<BoatRow>(
     "SELECT id, name, registration_number, captain_name, notes, status FROM boats WHERE id = ?",
     [params.id],
   );
@@ -52,11 +53,7 @@ export default function BoatDetailPage() {
   }
 
   if (!boat) {
-    return (
-      <main className="p-6">
-        <p className="text-sm text-ink-faint">{t("common.loading")}</p>
-      </main>
-    );
+    return <LoadingScreen error={boatError} />;
   }
 
   return (

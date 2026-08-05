@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PrintButton } from "@/components/ui/PrintButton";
 
 interface BoatReportRow {
   id: string;
@@ -35,7 +36,11 @@ export default function BoatReportPage() {
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
-      <PageHeader title={t("reports.boatReport")} backHref="/reports" />
+      <PageHeader
+        title={t("reports.boatReport")}
+        backHref="/reports"
+        action={<PrintButton />}
+      />
 
       {(!rows || rows.length === 0) && (
         <p className="text-sm text-ink-faint">{t("common.noResults")}</p>

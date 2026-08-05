@@ -15,18 +15,18 @@ interface PageHeaderProps {
 // lecture) est visuellement à droite, l'inverse de la convention LTR (←).
 export function PageHeader({ title, backHref, action }: PageHeaderProps) {
   return (
-    <header className="sticky top-0 z-10 -mx-6 mb-6 flex items-center gap-3 border-b border-sand-dim bg-sand/90 px-6 py-4 backdrop-blur-sm dark:border-white/10 dark:bg-ink/90">
+    <header className="sticky top-0 z-10 -mx-6 mb-6 flex items-center gap-3 border-b border-sand-dim bg-sand/90 px-6 py-4 backdrop-blur-sm dark:border-white/10 dark:bg-ink/90 print:static print:border-b-0 print:bg-white print:px-0 print:backdrop-blur-none">
       <Link
         href={backHref}
         aria-label={t("common.back")}
-        className="-ms-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-sand-dim hover:text-ink dark:text-sand/70 dark:hover:bg-white/10 dark:hover:text-sand"
+        className="-ms-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-sand-dim hover:text-ink dark:text-sand/70 dark:hover:bg-white/10 dark:hover:text-sand print:hidden"
       >
         <ChevronRight size={20} />
       </Link>
       <h1 className="font-display flex-1 truncate text-lg font-semibold text-ink dark:text-sand">
         {title}
       </h1>
-      {action}
+      {action && <div className="print:hidden">{action}</div>}
     </header>
   );
 }

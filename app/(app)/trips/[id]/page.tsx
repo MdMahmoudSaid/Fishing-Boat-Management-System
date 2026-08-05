@@ -11,6 +11,7 @@ import { useCompanyId } from "@/lib/auth/useCompanyId";
 import {
   updateTrip,
   advanceTripStatus,
+  reopenTrip,
   softDeleteTrip,
   type TripInput,
   type TripEditableFields,
@@ -27,6 +28,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { TripForm } from "@/components/forms/TripForm";
 import { TripCrewAssignmentForm } from "@/components/forms/TripCrewAssignmentForm";
 
@@ -78,7 +80,7 @@ export default function TripDetailPage() {
   const powersync = usePowerSync();
   const { companyId } = useCompanyId();
 
-  const { data: tripRows } = useQuery<TripRow>(
+  const { data: tripRows, error: tripError } = useQuery<TripRow>(
     `SELECT t.id, t.boat_id, b.name AS boat_name, t.captain_name, t.departure_date,
             t.expected_return_date, t.actual_return_date, t.status, t.crew_payment_method, t.notes
      FROM trips t JOIN boats b ON b.id = t.boat_id
@@ -109,13 +111,10 @@ export default function TripDetailPage() {
   );
   const [crewFormOpen, setCrewFormOpen] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [reopenConfirmOpen, setReopenConfirmOpen] = useState(false);
 
   if (!trip) {
-    return (
-      <main className="p-6">
-        <p className="text-sm text-ink-faint">{t("common.loading")}</p>
-      </main>
-    );
+    return <LoadingScreen error={tripError} />;
   }
 
   const next = nextTripStatus(trip.status);
@@ -183,6 +182,22 @@ export default function TripDetailPage() {
     }
   }
 
+  async function handleReopen() {
+    if (!trip) return;
+    setStatusError(null);
+    try {
+      await reopenTrip(powersync, {
+        id: trip.id,
+        boatId: trip.boat_id,
+        status: trip.status,
+      });
+    } catch (err) {
+      setStatusError(err instanceof TripValidationError ? err.message : String(err));
+    } finally {
+      setReopenConfirmOpen(false);
+    }
+  }
+
   async function handleAddCrewMember(input: TripCrewInput) {
     if (!companyId || !trip) return;
     await addTripCrewMember(powersync, companyId, trip.id, input);
@@ -235,6 +250,11 @@ export default function TripDetailPage() {
           {next && (
             <Button onClick={handleAdvance}>
               {t("trips.advanceTo")}: {t(`trips.${STATUS_LABEL_KEY[next]}`)}
+            </Button>
+          )}
+          {trip.status === "closed" && (
+            <Button variant="secondary" onClick={() => setReopenConfirmOpen(true)}>
+              {t("trips.reopen")}
             </Button>
           )}
           <Button variant="secondary" onClick={() => setEditOpen(true)}>
@@ -364,6 +384,16 @@ export default function TripDetailPage() {
         message={t("trips.confirmDeleteMessage")}
         onConfirm={handleDelete}
         onCancel={() => setDeleteOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={reopenConfirmOpen}
+        title={t("trips.confirmReopenTitle")}
+        message={t("trips.confirmReopenMessage")}
+        confirmLabel={t("trips.reopen")}
+        confirmVariant="primary"
+        onConfirm={handleReopen}
+        onCancel={() => setReopenConfirmOpen(false)}
       />
     </main>
   );

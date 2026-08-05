@@ -59,3 +59,14 @@ h3,
   outline: 2px solid var(--color-rope);
   outline-offset: 2px;
 }
+
+/* Pages de rapports imprimables (voir components/ui/PrintButton.tsx) :
+   fond blanc garanti même en thème sombre, pas d'ombres qui bavent sur le
+   papier/PDF. Le chrome interactif (flèche retour, bouton imprimer) est
+   masqué via les classes print: posées directement dans PageHeader. */
+@media print {
+  body {
+    background-color: #fff !important;
+    color: #000 !important;
+  }
+}

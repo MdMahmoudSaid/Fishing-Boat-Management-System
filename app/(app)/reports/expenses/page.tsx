@@ -6,6 +6,7 @@ import { formatCurrency } from "@/lib/format";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PrintButton } from "@/components/ui/PrintButton";
 
 interface ExpenseReportRow {
   category_name: string;
@@ -30,7 +31,11 @@ export default function ExpenseReportPage() {
 
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-4 p-6">
-      <PageHeader title={t("reports.expenseReport")} backHref="/reports" />
+      <PageHeader
+        title={t("reports.expenseReport")}
+        backHref="/reports"
+        action={<PrintButton />}
+      />
 
       <Card className="flex items-center justify-between">
         <span className="text-sm text-ink-faint">{t("expenses.total")}</span>

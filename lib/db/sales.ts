@@ -1,6 +1,7 @@
 import type { AbstractPowerSyncDatabase } from "@powersync/web";
 import { generateId } from "@/lib/id/generateId";
 import { assertQuantityWithinStock } from "@/lib/calculations/inventory";
+import { assertTripNotClosed, type TripStatus } from "@/lib/calculations/tripValidation";
 
 export interface SaleInput {
   buyerId: string;
@@ -27,6 +28,12 @@ export async function createSale(
   tripId: string,
   input: SaleInput,
 ): Promise<string> {
+  const [trip] = await db.getAll<{ status: TripStatus }>(
+    "SELECT status FROM trips WHERE id = ?",
+    [tripId],
+  );
+  if (trip) assertTripNotClosed(trip.status);
+
   const catches = await db.getAll<StockRow>(
     "SELECT fish_category_id, fish_quality_level_id, quantity FROM catches WHERE trip_id = ?",
     [tripId],

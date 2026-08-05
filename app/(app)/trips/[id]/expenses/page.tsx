@@ -30,6 +30,10 @@ interface ExpenseCategoryOption {
   name: string;
 }
 
+interface TripStatusRow {
+  status: "preparing" | "at_sea" | "returned" | "closed";
+}
+
 const PHOTO_STATUS_LABEL_KEY = {
   none: null,
   pending_upload: "photoPending",
@@ -55,18 +59,30 @@ export default function TripExpensesPage() {
     [companyId ?? ""],
   );
 
+  const { data: tripRows } = useQuery<TripStatusRow>(
+    "SELECT status FROM trips WHERE id = ?",
+    [params.id],
+  );
+  const tripClosed = tripRows?.[0]?.status === "closed";
+
   const [formOpen, setFormOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const total = (rows ?? []).reduce((sum, row) => sum + row.amount, 0);
 
   async function handleSubmit(input: ExpenseInput, photo: File | null) {
     if (!companyId) return;
-    const expenseId = await createExpense(powersync, companyId, params.id, input);
-    if (photo) {
-      await queuePhotoForUpload(powersync, companyId, expenseId, photo);
+    setError(null);
+    try {
+      const expenseId = await createExpense(powersync, companyId, params.id, input);
+      if (photo) {
+        await queuePhotoForUpload(powersync, companyId, expenseId, photo);
+      }
+      setFormOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     }
-    setFormOpen(false);
   }
 
   async function handleCreateCategory(input: ExpenseCategoryInput) {
@@ -83,7 +99,7 @@ export default function TripExpensesPage() {
         action={
           <Button
             onClick={() => setFormOpen(true)}
-            disabled={!categories || categories.length === 0}
+            disabled={!categories || categories.length === 0 || tripClosed}
             className="px-3"
           >
             {t("common.add")}
@@ -91,8 +107,12 @@ export default function TripExpensesPage() {
         }
       />
 
-      {(!categories || categories.length === 0) && (
-        <p className="text-sm text-ink-faint">{t("expenses.noCategoriesAvailable")}</p>
+      {tripClosed ? (
+        <p className="text-sm text-ink-faint">{t("trips.tripClosedNoEdit")}</p>
+      ) : (
+        (!categories || categories.length === 0) && (
+          <p className="text-sm text-ink-faint">{t("expenses.noCategoriesAvailable")}</p>
+        )
       )}
 
       <Card className="flex items-center justify-between">
@@ -128,6 +148,7 @@ export default function TripExpensesPage() {
       </div>
 
       <Modal open={formOpen} onClose={() => setFormOpen(false)} title={t("common.add")}>
+        {error && <p className="mb-3 rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
         <ExpenseForm
           categories={categories ?? []}
           onAddCategoryClick={() => setCategoryFormOpen(true)}
