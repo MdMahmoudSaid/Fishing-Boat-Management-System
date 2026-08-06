@@ -2,6 +2,8 @@
 // − SUM(sales) par trip+fish_category+fish_quality). Fonctions pures,
 // testables sans DB — voir inventory.test.ts.
 
+import { t } from "../i18n";
+
 export interface CatchQuantity {
   fishCategoryId: string;
   fishQualityLevelId: string;
@@ -103,7 +105,7 @@ export function assertQuantityWithinStock(
   const remaining = remainingStockFor(catches, sales, fishCategoryId, fishQualityLevelId);
   if (requestedQuantity > remaining) {
     throw new InsufficientStockError(
-      `الكمية المطلوبة (${requestedQuantity}) تتجاوز المخزون المتبقي (${remaining}).`,
+      t("inventory.insufficientStockError", { requested: requestedQuantity, remaining }),
     );
   }
 }

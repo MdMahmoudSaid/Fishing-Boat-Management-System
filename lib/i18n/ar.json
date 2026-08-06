@@ -46,7 +46,8 @@
     "defaultPrice": "السعر الافتراضي",
     "fishCategory": "نوع السمك",
     "confirmDeleteTitle": "تأكيد الحذف",
-    "confirmDeleteMessage": "هل أنت متأكد من حذف هذا العنصر؟ سيختفي من قوائم الاختيار لكنه سيبقى ظاهرًا في السجلات القديمة."
+    "confirmDeleteMessage": "هل أنت متأكد من حذف هذا العنصر؟ سيختفي من قوائم الاختيار لكنه سيبقى ظاهرًا في السجلات القديمة.",
+    "language": "اللغة"
   },
   "nav": {
     "boats": "القوارب",
@@ -168,7 +169,8 @@
     "noStockAvailable": "لا يوجد مخزون متاح للبيع",
     "noBuyersAvailable": "أضف مشتريًا أولاً من صفحة المشترين",
     "paidNow": "المبلغ المدفوع الآن (اختياري)",
-    "paidNowExceedsTotal": "المبلغ المدفوع لا يمكن أن يتجاوز المبلغ الإجمالي"
+    "paidNowExceedsTotal": "المبلغ المدفوع لا يمكن أن يتجاوز المبلغ الإجمالي",
+    "quantityExceedsStock": "الكمية تتجاوز المخزون المتاح ({remaining} {unit})"
   },
   "inventory": {
     "title": "المخزون",
@@ -176,7 +178,8 @@
     "fishQualityLevel": "درجة الجودة",
     "caught": "المصطاد",
     "sold": "المباع",
-    "remaining": "المتبقي"
+    "remaining": "المتبقي",
+    "insufficientStockError": "الكمية المطلوبة ({requested}) تتجاوز المخزون المتبقي ({remaining})."
   },
   "dashboard": {
     "title": "لوحة التحكم",

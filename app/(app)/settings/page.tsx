@@ -5,11 +5,12 @@ import { useState, FormEvent } from "react";
 import { usePowerSync, useQuery } from "@powersync/react";
 import type { AbstractPowerSyncDatabase } from "@powersync/web";
 import { Fish, Award, Wallet, ChevronLeft, Building2 } from "lucide-react";
-import { t } from "@/lib/i18n";
+import { t, setLocale, type Locale } from "@/lib/i18n";
 import { useCompanyId } from "@/lib/auth/useCompanyId";
 import { updateCompanyName } from "@/lib/db/companies";
 import {
   updateDefaultCrewPaymentMethod,
+  updateLanguage,
   type CrewPaymentMethod,
 } from "@/lib/db/settings";
 import { Card } from "@/components/ui/Card";
@@ -30,6 +31,7 @@ interface CompanyRow {
 
 interface SettingsRow {
   default_crew_payment_method: CrewPaymentMethod;
+  language: Locale;
 }
 
 // Isolé dans son propre composant, monté avec `key={company.name}` : évite
@@ -75,7 +77,7 @@ export default function SettingsPage() {
     [companyId ?? ""],
   );
   const { data: settingsRows } = useQuery<SettingsRow>(
-    "SELECT default_crew_payment_method FROM settings WHERE company_id = ?",
+    "SELECT default_crew_payment_method, language FROM settings WHERE company_id = ?",
     [companyId ?? ""],
   );
 
@@ -85,6 +87,16 @@ export default function SettingsPage() {
   async function handleCrewPaymentMethodChange(method: CrewPaymentMethod) {
     if (!companyId) return;
     await updateDefaultCrewPaymentMethod(powersync, companyId, method);
+  }
+
+  // Mise à jour optimiste (setLocale) en plus de la persistance PowerSync :
+  // applique immédiatement la langue/direction sans attendre le round-trip
+  // de la requête réactive (voir lib/i18n/LocaleProvider.tsx pour la
+  // réconciliation avec settings.language).
+  async function handleLanguageChange(locale: Locale) {
+    if (!companyId) return;
+    await updateLanguage(powersync, companyId, locale);
+    setLocale(locale);
   }
 
   return (
@@ -122,6 +134,18 @@ export default function SettingsPage() {
               },
             ]}
           />
+          <Select
+            label={t("settings.language")}
+            value={settings?.language ?? "ar"}
+            onChange={(e) => handleLanguageChange(e.target.value as Locale)}
+            options={[
+              // Le nom d'une langue s'affiche dans sa propre graphie, pas
+              // traduit via t() — convention universelle des sélecteurs de
+              // langue.
+              { value: "ar", label: "العربية" },
+              { value: "fr", label: "Français" },
+            ]}
+          />
         </div>
       </Card>
 
@@ -138,7 +162,7 @@ export default function SettingsPage() {
                 <Icon size={16} />
               </span>
               <span className="flex-1 font-medium">{t(link.labelKey)}</span>
-              <ChevronLeft size={16} className="text-ink-faint" />
+              <ChevronLeft size={16} className="text-ink-faint ltr:rotate-180" />
             </Link>
           );
         })}

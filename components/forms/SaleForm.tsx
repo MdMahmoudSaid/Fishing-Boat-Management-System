@@ -48,11 +48,14 @@ export function SaleForm({ buyers, stockOptions, onSubmit, onCancel }: SaleFormP
     selectedStock != null &&
     quantity !== "" &&
     Number(quantity) > selectedStock.remainingQuantity;
-  // Message construit avec la quantité/unité réelles (t() ne supporte pas
-  // l'interpolation) — même approche que InsufficientStockError côté DB.
+  // Message construit avec la quantité/unité réelles via l'interpolation de
+  // t() — même clé que InsufficientStockError côté DB (lib/calculations/inventory.ts).
   const quantityErrorMessage =
     quantityExceedsStock && selectedStock
-      ? `الكمية تتجاوز المخزون المتاح (${selectedStock.remainingQuantity} ${selectedStock.unit})`
+      ? t("sales.quantityExceedsStock", {
+          remaining: selectedStock.remainingQuantity,
+          unit: selectedStock.unit,
+        })
       : undefined;
 
   async function handleSubmit(event: FormEvent) {

@@ -2,6 +2,12 @@
 // (pas d'accès DB ici) pour rester facilement testables — voir
 // tripValidation.test.ts. Les appelants (lib/db/trips.ts) sont responsables
 // de récupérer les données nécessaires avant d'appeler ces fonctions.
+//
+// t() est une fonction simple (pas un hook) — utilisable ici même sans
+// "use client" (voir lib/i18n/index.ts). Les messages sont remontés
+// directement à l'utilisateur via err.message (voir app/(app)/trips/*).
+
+import { t } from "../i18n";
 
 export type TripStatus = "preparing" | "at_sea" | "returned" | "closed";
 
@@ -30,18 +36,14 @@ export function assertNoActiveTripForBoat(
     (trip) => trip.id !== excludeTripId && trip.status !== "closed",
   );
   if (activeTrip) {
-    throw new TripValidationError(
-      "هذا القارب لديه بالفعل سورتية نشطة. أغلق السورتية الحالية أولاً قبل إنشاء سورتية جديدة.",
-    );
+    throw new TripValidationError(t("trips.activeTripError"));
   }
 }
 
 // §7 : "A trip cannot move to 'closed' status until actual_return_date is set."
 export function assertCanClose(trip: { actualReturnDate: string | null }): void {
   if (!trip.actualReturnDate) {
-    throw new TripValidationError(
-      "لا يمكن إغلاق السورتية قبل تسجيل تاريخ العودة الفعلي.",
-    );
+    throw new TripValidationError(t("trips.closeError"));
   }
 }
 
@@ -52,9 +54,7 @@ export function assertCanClose(trip: { actualReturnDate: string | null }): void 
 // (voir reopenTrip) avant d'y ajouter quoi que ce soit.
 export function assertTripNotClosed(status: TripStatus): void {
   if (status === "closed") {
-    throw new TripValidationError(
-      "السورتية مغلقة. أعد فتحها من صفحتها الرئيسية لإضافة بيانات جديدة.",
-    );
+    throw new TripValidationError(t("trips.tripClosedNoEdit"));
   }
 }
 

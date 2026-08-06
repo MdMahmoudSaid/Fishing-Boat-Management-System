@@ -28,7 +28,7 @@ export default function ReportsPage() {
               <FileBarChart2 size={16} />
             </span>
             <span className="flex-1 font-medium">{t(report.labelKey)}</span>
-            <ChevronLeft size={16} className="text-ink-faint" />
+            <ChevronLeft size={16} className="text-ink-faint ltr:rotate-180" />
           </Link>
         ))}
       </div>
