@@ -4,9 +4,11 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/supabase/AuthProvider";
 import { signIn } from "@/lib/supabase/auth";
+import { isValidMauritanianPhone, isValidLoginCode } from "@/lib/auth/phoneAuth";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { CodeInput } from "@/components/ui/CodeInput";
 import { Card } from "@/components/ui/Card";
 import { Logo } from "@/components/ui/Logo";
 
@@ -14,8 +16,8 @@ export default function LoginPage() {
   const { session, loading } = useSession();
   const router = useRouter();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,12 +27,21 @@ export default function LoginPage() {
     }
   }, [loading, session, router]);
 
+  // Erreur affichée seulement une fois le champ rempli à sa longueur
+  // attendue (8 chiffres / 4 chiffres) — pas pendant la saisie en cours.
+  const phoneError =
+    phone.length === 8 && !isValidMauritanianPhone(phone)
+      ? t("auth.phoneInvalid")
+      : undefined;
+  const canSubmit = isValidMauritanianPhone(phone) && isValidLoginCode(code);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (!canSubmit) return;
     setError(null);
     setSubmitting(true);
     try {
-      await signIn(email, password);
+      await signIn(phone, code);
       router.replace("/");
     } catch {
       setError(t("auth.loginError"));
@@ -67,31 +78,33 @@ export default function LoginPage() {
             {t("auth.loginTitle")}
           </h1>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input
-              id="email"
-              type="email"
-              label={t("auth.email")}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+            <PhoneInput
+              id="phone"
+              label={t("auth.phone")}
+              value={phone}
+              onChange={setPhone}
+              error={phoneError}
               required
-              autoComplete="email"
-              dir="ltr"
+              placeholder="XXXXXXXX"
             />
-            <Input
-              id="password"
-              type="password"
-              label={t("auth.password")}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+            <CodeInput
+              id="code"
+              label={t("auth.code")}
+              value={code}
+              onChange={setCode}
               required
-              autoComplete="current-password"
+              autoComplete="off"
             />
             {error && (
               <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">
                 {error}
               </p>
             )}
-            <Button type="submit" disabled={submitting} className="mt-1 w-full">
+            <Button
+              type="submit"
+              disabled={submitting || !canSubmit}
+              className="mt-1 w-full"
+            >
               {submitting ? t("auth.loggingIn") : t("auth.loginButton")}
             </Button>
           </form>

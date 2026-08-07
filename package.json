@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "seed": "tsx --env-file=.env.local scripts/seed-owner.ts"
+    "seed": "tsx --env-file=.env.local scripts/seed-owner.ts",
+    "update-credentials": "tsx --env-file=.env.local scripts/update-owner-credentials.ts"
   },
   "dependencies": {
     "next": "latest",

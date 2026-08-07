@@ -3,11 +3,21 @@
 // PROJECT_PLAN) : ce script, exécuté une seule fois avec la clé
 // service_role, joue ce rôle.
 //
+// Connexion par numéro de téléphone mauritanien (+222 fixe) + code à 4
+// chiffres — voir lib/auth/phoneAuth.ts pour la dérivation du mot de passe
+// réellement envoyé à Supabase Auth (qui exige ≥ 6 caractères).
+//
 // Usage :
-//   npm run seed -- --company "Nom de la société" --name "Nom du propriétaire" --email "owner@example.com" --password "un-mot-de-passe-fort"
+//   npm run seed -- --company "Nom de la société" --name "Nom du propriétaire" --phone "44556677" --code "1234"
 
 import { createClient } from "@supabase/supabase-js";
 import { randomUUID } from "node:crypto";
+import {
+  deriveLoginPassword,
+  isValidLoginCode,
+  isValidMauritanianPhone,
+  toSyntheticEmail,
+} from "../lib/auth/phoneAuth";
 
 const DEFAULT_EXPENSE_CATEGORIES = [
   "وقود", // Carburant
@@ -33,8 +43,17 @@ function requiredArg(name: string): string {
 async function main() {
   const companyName = requiredArg("company");
   const ownerName = requiredArg("name");
-  const email = requiredArg("email");
-  const password = requiredArg("password");
+  const phone = requiredArg("phone");
+  const code = requiredArg("code");
+
+  if (!isValidMauritanianPhone(phone)) {
+    throw new Error(
+      "--phone doit être un numéro mauritanien à 8 chiffres commençant par 2, 3 ou 4",
+    );
+  }
+  if (!isValidLoginCode(code)) {
+    throw new Error("--code doit être composé d'exactement 4 chiffres");
+  }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -46,10 +65,16 @@ async function main() {
 
   const supabase = createClient(url, serviceRoleKey);
 
+  // Fournisseur "Phone" natif de Supabase Auth désactivé sur ce projet
+  // (nécessiterait un fournisseur SMS) — email synthétique dérivé du
+  // téléphone à la place, jamais affiché à l'utilisateur (voir
+  // lib/auth/phoneAuth.ts).
+  const syntheticEmail = toSyntheticEmail(phone);
+
   console.log("Création du compte de connexion (Supabase Auth)...");
   const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-    email,
-    password,
+    email: syntheticEmail,
+    password: deriveLoginPassword(phone, code),
     email_confirm: true,
   });
   if (userError) throw userError;
@@ -68,7 +93,7 @@ async function main() {
     id: authUserId,
     company_id: companyId,
     name: ownerName,
-    email,
+    email: syntheticEmail,
     role: "owner",
   });
   if (publicUserError) throw publicUserError;
@@ -95,8 +120,8 @@ async function main() {
   if (categoriesError) throw categoriesError;
 
   console.log("\n✅ Terminé. Connecte-toi dans l'app avec :");
-  console.log(`   Email : ${email}`);
-  console.log(`   Mot de passe : celui fourni à --password`);
+  console.log(`   Téléphone : +222 ${phone}`);
+  console.log(`   Code : celui fourni à --code`);
 }
 
 main().catch((error) => {

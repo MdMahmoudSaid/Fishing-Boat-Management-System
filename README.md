@@ -82,6 +82,8 @@ NEXT_PUBLIC_POWERSYNC_URL=
 POWERSYNC_TOKEN_SECRET=
 ```
 
+> 📖 Guide détaillé étape par étape (création du projet Supabase, PowerSync, création d'une société, connexion) : [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
+
 ## 📋 Plan du projet
 
 Le plan détaillé complet (modèle de données, règles métier, modules, définition de fini) est disponible dans [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md).

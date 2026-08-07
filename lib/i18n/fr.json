@@ -23,11 +23,14 @@
   },
   "auth": {
     "loginTitle": "Connexion",
-    "email": "E-mail",
-    "password": "Mot de passe",
+    "phone": "Numéro de téléphone",
+    "phoneInvalid": "Le numéro doit commencer par 2, 3 ou 4 et comporter 8 chiffres",
+    "code": "Code",
+    "showCode": "Afficher le code",
+    "hideCode": "Masquer le code",
     "loginButton": "Se connecter",
     "loggingIn": "Connexion en cours...",
-    "loginError": "E-mail ou mot de passe incorrect",
+    "loginError": "Numéro de téléphone ou code incorrect",
     "logout": "Déconnexion"
   },
   "settings": {
