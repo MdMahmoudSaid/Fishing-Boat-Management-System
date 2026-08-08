@@ -83,6 +83,8 @@ POWERSYNC_TOKEN_SECRET=
 ```
 
 > 📖 Guide détaillé étape par étape (création du projet Supabase, PowerSync, création d'une société, connexion) : [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
+>
+> 👥 Tu rejoins le projet en tant que développeur et dois te connecter au backend **existant** (sans rien recréer) : [`docs/ONBOARDING_COLLABORATEUR.md`](docs/ONBOARDING_COLLABORATEUR.md).
 
 ## 📋 Plan du projet
 
