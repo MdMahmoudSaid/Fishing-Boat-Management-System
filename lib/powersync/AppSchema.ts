@@ -18,8 +18,8 @@ const users = new Table(
   {
     company_id: column.text,
     name: column.text,
-    email: column.text,
-    password_hash: column.text,
+    phone: column.text,
+    code_hash: column.text,
     role: column.text,
     created_at: column.text,
   },

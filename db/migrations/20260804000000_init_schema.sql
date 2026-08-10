@@ -20,12 +20,16 @@
     created_at timestamptz not null default now()
   );
 
+  -- `id` n'est plus une FK vers auth.users (table Supabase Auth, qui
+  -- n'existe plus en self-hébergé) : c'est un uuid généré côté client comme
+  -- les autres tables. `phone`/`code_hash` sont l'identité de connexion
+  -- directe (login par téléphone + code à 4 chiffres, voir Task 8).
   create table public.users (
-    id uuid primary key references auth.users (id) on delete cascade,
+    id uuid primary key,
     company_id uuid not null references public.companies (id),
     name text not null,
-    email text not null unique,
-    password_hash text,
+    phone text not null unique,
+    code_hash text not null,
     role text not null default 'owner' check (role in ('owner')),
     created_at timestamptz not null default now()
   );
