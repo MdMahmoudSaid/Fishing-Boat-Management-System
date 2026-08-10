@@ -14,27 +14,33 @@
     "update-credentials": "tsx --env-file=.env.local scripts/update-owner-credentials.ts"
   },
   "dependencies": {
-    "next": "latest",
-    "react": "latest",
-    "react-dom": "latest",
-    "@supabase/supabase-js": "latest",
-    "@powersync/web": "^2.1.0",
     "@powersync/react": "^2.0.0",
+    "@powersync/web": "^2.1.0",
+    "@supabase/supabase-js": "latest",
     "@serwist/next": "latest",
-    "lucide-react": "latest"
+    "bcryptjs": "latest",
+    "jose": "latest",
+    "lucide-react": "latest",
+    "minio": "latest",
+    "next": "latest",
+    "pg": "latest",
+    "react": "latest",
+    "react-dom": "latest"
   },
   "devDependencies": {
-    "tsx": "latest",
-    "typescript": "latest",
+    "@tailwindcss/postcss": "latest",
+    "@types/bcryptjs": "latest",
     "@types/node": "latest",
+    "@types/pg": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "tailwindcss": "latest",
-    "@tailwindcss/postcss": "latest",
-    "postcss": "latest",
-    "serwist": "latest",
     "eslint": "latest",
     "eslint-config-next": "latest",
+    "postcss": "latest",
+    "serwist": "latest",
+    "tailwindcss": "latest",
+    "tsx": "latest",
+    "typescript": "latest",
     "vitest": "latest"
   }
 }
