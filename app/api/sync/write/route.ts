@@ -35,14 +35,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ code: "22P02", message: "Requête de synchro malformée" }, { status: 400 });
   }
 
-  // Garde-fou : buildSyncQuery() ne vérifie pas que `data` est un objet non
-  // vide sur PUT/PATCH — un `data` manquant/vide produirait un SET vide
-  // dans le SQL généré (ex: "UPDATE boats SET  WHERE id = $1", rejeté par
-  // Postgres avec une erreur de syntaxe peu explicite). DELETE n'utilise
-  // pas `data`, donc pas concerné.
+  // Garde-fou : buildSyncQuery() ne vérifie pas que `data` contient au moins
+  // une colonne à écrire sur PUT/PATCH — un `data` manquant/vide, ou ne
+  // contenant que "id" (qui est de toute façon exclu du SET), produirait un
+  // SET vide dans le SQL généré (ex: "UPDATE boats SET  WHERE id = $1"),
+  // rejeté par Postgres avec une erreur de syntaxe peu explicite. On
+  // vérifie donc qu'il reste au moins une clé autre que "id" après filtrage.
+  // DELETE n'utilise pas `data`, donc pas concerné.
   if (body.op !== "DELETE") {
     const data = body.data;
-    if (!data || typeof data !== "object" || Array.isArray(data) || Object.keys(data).length === 0) {
+    const hasWritableColumn =
+      data && typeof data === "object" && !Array.isArray(data) &&
+      Object.keys(data).some((key) => key !== "id");
+    if (!hasWritableColumn) {
       return NextResponse.json({ code: "22P02", message: "Requête de synchro malformée" }, { status: 400 });
     }
   }
