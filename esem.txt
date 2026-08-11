@@ -1,5 +1,0 @@
-npm run seed -- --company "Nom de ta société" --name "Ton nom" --email "toi@example.com" --password "un-mot-de-passe-fort"
-
-
-------------------------1er example-----------------------
-npm run seed -- --company "l7ewate" --name "hamoud" --email "hamoud@email.com" --password "1234" 
