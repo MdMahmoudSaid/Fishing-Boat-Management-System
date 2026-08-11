@@ -5,6 +5,12 @@ import { expensePhotoObjectPath, getMinioClient, PHOTOS_BUCKET } from "@/lib/sto
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// expenses.id est toujours un UUID généré côté client (voir
+// db/migrations/20260804000000_init_schema.sql) : on le vérifie strictement
+// pour empêcher qu'un X-Expense-Id malveillant (ex. contenant "/" ou "..")
+// ne fasse sortir la clé d'objet MinIO du préfixe {companyId}/ attendu.
+const EXPENSE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(request: NextRequest) {
   const header = request.headers.get("authorization");
   if (!header?.startsWith("Bearer ")) {
@@ -19,8 +25,8 @@ export async function POST(request: NextRequest) {
   }
 
   const expenseId = request.headers.get("x-expense-id");
-  if (!expenseId) {
-    return NextResponse.json({ error: "missing_expense_id" }, { status: 400 });
+  if (!expenseId || !EXPENSE_ID_PATTERN.test(expenseId)) {
+    return NextResponse.json({ error: "invalid_expense_id" }, { status: 400 });
   }
 
   const buffer = Buffer.from(await request.arrayBuffer());
