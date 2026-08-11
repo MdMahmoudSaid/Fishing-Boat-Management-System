@@ -13,18 +13,18 @@ Système de gestion complet pour une entreprise de pêche — application mobile
 - **Calcul de profit** — revenus bruts, dépenses totales, paiements d'équipage, profit net en temps réel
 - **Tableau de bord** — cartes agrégées (bateaux, sorties, revenus, dépenses, profit net, dettes clients)
 - **Rapports** — Rapport Bateau, Rapport Sortie, Rapport Dépenses, Rapport Ventes, Rapport Dettes Clients
-- **100% hors-ligne** — toutes les lectures/écritures passent par SQLite local (PowerSync), synchronisation transparente vers PostgreSQL (Supabase)
+- **100% hors-ligne** — toutes les lectures/écritures passent par SQLite local (PowerSync), synchronisation transparente vers PostgreSQL (self-hébergé)
 
 ## 🛠️ Stack technique
 
 | Couche | Technologie |
 |---|---|
 | Framework | Next.js (App Router, TypeScript) |
-| Base de données | PostgreSQL (Supabase) |
-| Stockage photos | Supabase Storage |
+| Base de données | PostgreSQL (self-hébergé, Docker) |
+| Stockage photos | MinIO (S3-compatible, self-hébergé) |
 | Sync hors-ligne | PowerSync (SQLite local → Postgres) |
 | Hébergement | Vercel |
-| Auth | Supabase Auth (email/mot de passe) |
+| Auth | JWT maison (téléphone + code à 4 chiffres) |
 | Styling | Tailwind CSS |
 | PWA | next-pwa (installable, offline app shell) |
 | Langue | Arabe (RTL) — structure i18n extensible |
@@ -46,7 +46,8 @@ Système de gestion complet pour une entreprise de pêche — application mobile
   /(app)/settings
 /lib
   /powersync              → Configuration client PowerSync, schéma
-  /supabase               → Client Supabase (auth, storage)
+  /postgres               → Accès Postgres serveur (pool, RLS, requêtes de synchro)
+  /auth                   → Auth JWT maison (session, client, provider)
   /db                     → Helpers de requêtes SQLite locales
   /sync                   → Logique de file d'attente de téléversement photos
   /calculations           → Fonctions de calcul (profit, inventaire, équipage)
@@ -75,14 +76,19 @@ npm run dev
 ### Variables d'environnement requises
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=
+APP_DATABASE_URL=
+JWT_SECRET=
+MINIO_ENDPOINT=
+MINIO_PORT=
+MINIO_ACCESS_KEY=
+MINIO_SECRET_KEY=
+MINIO_BUCKET=
+MINIO_USE_SSL=
 NEXT_PUBLIC_POWERSYNC_URL=
-POWERSYNC_TOKEN_SECRET=
 ```
 
-> 📖 Guide détaillé étape par étape (création du projet Supabase, PowerSync, création d'une société, connexion) : [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
+> 📖 Guide détaillé étape par étape (lancement de Postgres + MinIO, PowerSync, création d'une société, connexion) : [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md).
 >
 > 👥 Tu rejoins le projet en tant que développeur et dois te connecter au backend **existant** (sans rien recréer) : [`docs/ONBOARDING_COLLABORATEUR.md`](docs/ONBOARDING_COLLABORATEUR.md).
 
