@@ -5,7 +5,7 @@ import { PowerSyncContext } from "@powersync/react";
 import { PowerSyncDatabase } from "@powersync/web";
 import { AppSchema } from "./AppSchema";
 import { BackendConnector } from "./BackendConnector";
-import { useSession } from "@/lib/supabase/AuthProvider";
+import { useSession } from "@/lib/auth/AuthProvider";
 
 let dbInstance: PowerSyncDatabase | null = null;
 // `PowerSyncDatabase` n'expose pas publiquement si connect() a déjà été
@@ -27,21 +27,19 @@ function getDB(): PowerSyncDatabase {
     },
   });
 
-  // Pas de connect() ici : la connexion attend une session Supabase
-  // confirmée (voir usePowerSyncAuthLifecycle ci-dessous). Se connecter au
-  // montage, avant que l'auth soit résolue, fait échouer fetchCredentials()
-  // en boucle ("Aucune session Supabase active") tant que l'utilisateur
-  // n'est pas connecté.
+  // Pas de connect() ici : la connexion attend une session confirmée (voir
+  // usePowerSyncAuthLifecycle ci-dessous). Se connecter au montage, avant
+  // que l'auth soit résolue, fait échouer fetchCredentials() en boucle
+  // ("Aucune session active") tant que l'utilisateur n'est pas connecté.
   return dbInstance;
 }
 
-// Connecte/déconnecte PowerSync en suivant l'état de la session Supabase,
-// plutôt que de se connecter en aveugle au montage. Sans ça, PowerSync tente
-// de syncer avant la connexion de l'utilisateur (et reste connecté après un
-// logout), donc fetchCredentials() échoue en boucle avec "Aucune session
-// Supabase active" — bruit console et "Issue" remontée par l'overlay dev de
-// Next.js, puisque le logger par défaut de PowerSync journalise via
-// console.error à ce niveau.
+// Connecte/déconnecte PowerSync en suivant l'état de la session, plutôt que
+// de se connecter en aveugle au montage. Sans ça, PowerSync tente de syncer
+// avant la connexion de l'utilisateur (et reste connecté après un logout),
+// donc fetchCredentials() échoue en boucle avec "Aucune session active" —
+// bruit console et "Issue" remontée par l'overlay dev de Next.js, puisque le
+// logger par défaut de PowerSync journalise via console.error à ce niveau.
 function usePowerSyncAuthLifecycle(db: PowerSyncDatabase) {
   const { session, loading } = useSession();
 

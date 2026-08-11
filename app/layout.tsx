@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { El_Messiri, IBM_Plex_Sans_Arabic } from "next/font/google";
 import Script from "next/script";
-import { AuthProvider } from "@/lib/supabase/AuthProvider";
+import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { PowerSyncProvider } from "@/lib/powersync/PowerSyncProvider";
 import { LocaleProvider } from "@/lib/i18n/LocaleProvider";
 import "./globals.css";

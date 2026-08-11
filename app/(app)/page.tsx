@@ -13,7 +13,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { t } from "@/lib/i18n";
-import { signOut } from "@/lib/supabase/auth";
+import { signOut } from "@/lib/auth/authClient";
 import { Logo } from "@/components/ui/Logo";
 
 const NAV_ITEMS = [
