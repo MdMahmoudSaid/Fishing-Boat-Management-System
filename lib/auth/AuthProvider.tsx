@@ -23,6 +23,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Lecture de localStorage forcément différée après le montage
+    // (indisponible en SSR) ; un seul rendu supplémentaire au montage, pas
+    // de cascade profonde.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSession(readSession());
     setLoading(false);
     return subscribeSessionChange(() => setSession(readSession()));
