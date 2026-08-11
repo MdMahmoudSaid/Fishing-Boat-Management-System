@@ -19,11 +19,11 @@ A mobile-first, offline-first Progressive Web App (PWA) for a single fishing com
 | Layer | Choice |
 |---|---|
 | Framework | Next.js (App Router, TypeScript) |
-| Database | PostgreSQL, hosted on Supabase |
-| File/Photo storage | Supabase Storage (S3-compatible) |
-| Offline sync engine | PowerSync (client SQLite via WASM, syncs to Supabase Postgres) |
+| Database | PostgreSQL, self-hébergé (Docker, VPS) |
+| File/Photo storage | MinIO (S3-compatible, self-hébergé) |
+| Offline sync engine | PowerSync Cloud (client SQLite via WASM, syncs to self-hosted Postgres) |
 | Hosting | Vercel |
-| Auth | Simple email/password login (Supabase Auth or custom — single admin role in V1, see §6) |
+| Auth | JWT maison (téléphone + code à 4 chiffres, voir §6) |
 | Styling | Tailwind CSS |
 | PWA | next-pwa or equivalent service worker setup, installable, offline app shell |
 | Language | Arabic (RTL) primary UI; all strings must be centralized in a translation file (even if only Arabic exists in V1) so more languages can be added later without restructuring |
@@ -31,7 +31,7 @@ A mobile-first, offline-first Progressive Web App (PWA) for a single fishing com
 ### Why this stack (context for implementation decisions)
 - Single admin, single active device at a time → no complex multi-user conflict resolution needed. PowerSync's default last-write-wins is sufficient.
 - All read AND write operations must work fully offline (not just caching) — the local SQLite database (managed by PowerSync) is the actual source of truth the UI reads/writes to. Every screen queries the local PowerSync SQLite DB, never a live API call directly, so the app works fully offline. PowerSync handles background sync to Postgres transparently.
-- Photos taken offline are stored in local browser storage (IndexedDB/local blob) first, queued, and uploaded to Supabase Storage automatically once connectivity returns.
+- Photos taken offline are stored in local browser storage (IndexedDB/local blob) first, queued, and uploaded to MinIO automatically once connectivity returns.
 
 ---
 
@@ -42,14 +42,19 @@ A mobile-first, offline-first Progressive Web App (PWA) for a single fishing com
    |
    |-- reads/writes --> [PowerSync Client SQLite (local, in-browser)]
    |                         |
-   |                         |-- sync --> [PowerSync Service] --> [Supabase Postgres]
+   |                         |-- sync --> [PowerSync Service]
+   |                                          |
+   |                                          |-- API Next.js (/api/sync/write, /api/auth/*, /api/photos/*)
+   |                                          |
+   |                                          v
+   |                                     [Postgres self-hébergé]
    |
-   |-- direct upload (when online) --> [Supabase Storage] (expense receipt photos)
+   |-- direct upload (when online) --> [MinIO] (expense receipt photos)
 ```
 
 - All CRUD operations in the UI go through the local PowerSync SQLite database.
 - PowerSync Sync Rules (server-side config) define what data syncs down (in V1: everything, since there's one company/one admin — no per-user partitioning needed).
-- Photo uploads are NOT synced through PowerSync (binary files aren't a fit for the SQLite sync layer). Implement a separate local upload queue: photo is saved to IndexedDB with status `pending_upload`, a background sync listener attempts upload to Supabase Storage when `navigator.onLine` is true, and updates the record with the resulting storage URL once successful. Retry with backoff on failure.
+- Photo uploads are NOT synced through PowerSync (binary files aren't a fit for the SQLite sync layer). Implement a separate local upload queue: photo is saved to IndexedDB with status `pending_upload`, a background sync listener attempts upload to MinIO (via `/api/photos/upload`) when `navigator.onLine` is true, and updates the record with the resulting storage URL once successful. Retry with backoff on failure.
 - Auth: since it's a PWA that must work fully offline including app *launch*, implement a persisted/cached session (e.g. long-lived JWT stored locally) so the admin doesn't get locked out of the app while offline. Login itself requires connectivity the first time; after that, session persists locally until expiry/logout.
 
 ---
@@ -71,7 +76,7 @@ Use UUID primary keys throughout (required for offline-first: IDs must be genera
 - company_id (fk)
 - name
 - email (unique)
-- password_hash (if not using Supabase Auth directly)
+- password_hash (see §6 — superseded by phone + 4-digit code auth)
 - role (enum: 'owner' — only value used in V1, but field exists for future roles)
 - created_at
 
@@ -228,10 +233,12 @@ Build V1 as one complete release (not phased), but implement in this dependency 
 
 ## 6. Auth Details
 
-- Single role in V1: `owner`. Login with email + password.
-- Use Supabase Auth for the login itself (handles password hashing, session tokens) — simplest given Supabase is already used for Postgres/Storage.
-- Persist the session client-side so the PWA can be opened and used fully offline after the first successful login (no forced re-authentication while offline). Token refresh happens silently when back online.
-- No signup screen needed in V1 — the single owner account is created via a seed script / initial setup flow, not public registration.
+- Single role in V1: `owner`. Login with Mauritanian phone number (8 digits) + a 4-digit code (not a classic password).
+- JWT maison (home-grown), not a third-party auth provider: `POST /api/auth/login` checks `phone` + `code_hash` (bcrypt) against `public.users` and issues an `{accessToken, refreshToken}` pair signed HS256 with `JWT_SECRET`. `POST /api/auth/refresh` rotates the access token from a stored refresh token (`refresh_tokens` table); `POST /api/auth/logout` revokes it. Claims: `sub` (user id), `company_id`, `role`, `exp`.
+- Same `JWT_SECRET` is configured as the PowerSync instance's "Client Auth" verification secret, so PowerSync trusts the tokens our own backend issues.
+- Persist the session client-side (`lib/auth/AuthProvider.tsx` / `authClient.ts`) so the PWA can be opened and used fully offline after the first successful login (no forced re-authentication while offline). Access token is short-lived (~1h); refresh token is long-lived (~90 days) and refreshed silently when back online.
+- No signup screen needed in V1 — the single owner account is created via a seed script (`npm run seed`) / initial setup flow, not public registration.
+- Full design rationale and migration details: `docs/superpowers/specs/2026-08-10-supabase-to-postgres-migration-design.md`.
 
 ---
 
@@ -292,7 +299,8 @@ Build V1 as one complete release (not phased), but implement in this dependency 
   /(app)/settings
 /lib
   /powersync              → PowerSync client setup, schema definition
-  /supabase                → Supabase client (auth, storage)
+  /postgres                → Server-side Postgres access (pool, RLS, sync-write queries)
+  /auth                     → Home-grown JWT auth (session, client, provider)
   /db                       → local SQLite query helpers per entity
   /sync                     → photo upload queue logic
   /calculations             → profit/inventory/crew-payment computation functions (pure functions, unit-testable)
@@ -309,11 +317,16 @@ Build V1 as one complete release (not phased), but implement in this dependency 
 ## 11. Environment Variables Needed
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=
+APP_DATABASE_URL=
+JWT_SECRET=
+MINIO_ENDPOINT=
+MINIO_PORT=
+MINIO_ACCESS_KEY=
+MINIO_SECRET_KEY=
+MINIO_BUCKET=
+MINIO_USE_SSL=
 NEXT_PUBLIC_POWERSYNC_URL=
-POWERSYNC_TOKEN_SECRET=  (or equivalent per PowerSync auth setup)
 ```
 
 ---
@@ -324,5 +337,5 @@ POWERSYNC_TOKEN_SECRET=  (or equivalent per PowerSync auth setup)
 - Dashboard figures match manually-verified totals from underlying trip data.
 - All validation rules in §7 enforced with clear user-facing error messages (in Arabic).
 - App installable as PWA on a phone, loads and is fully operable with airplane mode on after first login.
-- Photo upload queue verified: take a photo offline, go back online, confirm it appears in Supabase Storage and is linked to the correct expense.
-- Deployed and reachable on Vercel with production Supabase + PowerSync instances configured.
+- Photo upload queue verified: take a photo offline, go back online, confirm it appears in MinIO and is linked to the correct expense.
+- Deployed and reachable on Vercel with production Postgres/MinIO + PowerSync instances configured.

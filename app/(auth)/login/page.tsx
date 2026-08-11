@@ -2,8 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "@/lib/supabase/AuthProvider";
-import { signIn } from "@/lib/supabase/auth";
+import { useSession } from "@/lib/auth/AuthProvider";
+import { signIn } from "@/lib/auth/authClient";
 import { isValidMauritanianPhone, isValidLoginCode } from "@/lib/auth/phoneAuth";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/Button";

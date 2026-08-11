@@ -4,33 +4,48 @@ import {
   PowerSyncCredentials,
   UpdateType,
 } from "@powersync/web";
-import { supabase } from "@/lib/supabase/client";
+import { readSession } from "@/lib/auth/session";
+import { NON_RETRYABLE_POSTGRES_ERROR_CODES } from "@/lib/postgres/postgresErrorCodes";
 
 const powersyncUrl = process.env.NEXT_PUBLIC_POWERSYNC_URL;
-
-// Codes d'erreur Postgres qui ne peuvent JAMAIS réussir en réessayant : la
-// requête est structurellement invalide (droits, contrainte, donnée
-// malformée), pas un problème réseau. Sans cette distinction, une seule
-// écriture locale invalide (ex : reliquat d'une session avec un mauvais
-// company_id) bloque indéfiniment TOUTE la file de synchro PowerSync — les
-// transactions sont traitées en FIFO, donc tant que la première ne se
-// termine pas (par succès ou par transaction.complete() explicite), aucune
-// écriture suivante n'est jamais envoyée. Voir la doc PowerSync sur les
-// "non-retryable" errors des connecteurs Supabase.
-const NON_RETRYABLE_POSTGRES_ERROR_CODES = new Set([
-  "42501", // insufficient_privilege — violation RLS
-  "23505", // unique_violation
-  "23503", // foreign_key_violation
-  "23514", // check_violation
-  "23502", // not_null_violation
-  "22P02", // invalid_text_representation (ex : UUID malformé)
-  "42703", // undefined_column
-  "42P01", // undefined_table
-]);
 
 function isNonRetryableError(error: unknown): boolean {
   const code = (error as { code?: unknown } | null)?.code;
   return typeof code === "string" && NON_RETRYABLE_POSTGRES_ERROR_CODES.has(code);
+}
+
+class SyncWriteRequestError extends Error {
+  code?: string;
+  constructor(message: string, code?: string) {
+    super(message);
+    this.code = code;
+  }
+}
+
+async function syncWrite(
+  table: string,
+  op: UpdateType,
+  id: string,
+  data?: Record<string, unknown>,
+): Promise<void> {
+  const session = readSession();
+  if (!session) {
+    throw new Error("Aucune session active — connexion requise");
+  }
+
+  const response = await fetch("/api/sync/write", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.accessToken}`,
+    },
+    body: JSON.stringify({ table, op, id, data }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new SyncWriteRequestError(body.message ?? `Échec de synchro (${response.status})`, body.code);
+  }
 }
 
 export class BackendConnector implements PowerSyncBackendConnector {
@@ -41,17 +56,14 @@ export class BackendConnector implements PowerSyncBackendConnector {
       );
     }
 
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
+    const session = readSession();
     if (!session) {
-      throw new Error("Aucune session Supabase active — connexion requise");
+      throw new Error("Aucune session active — connexion requise");
     }
 
     return {
       endpoint: powersyncUrl,
-      token: session.access_token,
+      token: session.accessToken,
     };
   }
 
@@ -60,28 +72,13 @@ export class BackendConnector implements PowerSyncBackendConnector {
     if (!transaction) return;
 
     for (const op of transaction.crud) {
-      const table = supabase.from(op.table);
-
       try {
-        switch (op.op) {
-          case UpdateType.PUT:
-            await table.upsert({ ...op.opData, id: op.id }).throwOnError();
-            break;
-          case UpdateType.PATCH:
-            await table.update(op.opData ?? {}).eq("id", op.id).throwOnError();
-            break;
-          case UpdateType.DELETE:
-            await table.delete().eq("id", op.id).throwOnError();
-            break;
-        }
+        await syncWrite(op.table, op.op, op.id, op.opData);
       } catch (error) {
         if (isNonRetryableError(error)) {
           // Erreur permanente (RLS, contrainte, donnée invalide...) :
           // réessayer ne changera rien. On l'écarte pour ne pas bloquer
-          // indéfiniment le reste de la file de synchro. C'est un cas géré
-          // avec succès (pas une panne en cours) : console.warn plutôt que
-          // console.error pour ne pas déclencher l'overlay plein écran du
-          // dev server de Next.js, tout en restant visible dans la console.
+          // indéfiniment le reste de la file de synchro.
           console.warn(
             `[SYNC] Écriture locale rejetée définitivement et écartée — table="${op.table}" op="${op.op}" id="${op.id}"`,
             { opData: op.opData, error },

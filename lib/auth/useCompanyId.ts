@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@powersync/react";
-import { useSession } from "@/lib/supabase/AuthProvider";
+import { useSession } from "@/lib/auth/AuthProvider";
 
 interface UserRow {
   company_id: string;

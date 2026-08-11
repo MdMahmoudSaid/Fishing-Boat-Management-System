@@ -8,7 +8,7 @@ connexion). Pour le modèle de données et les règles métier, voir
 ## 1. Prérequis
 
 - Node.js 20+ et npm
-- Un compte [Supabase](https://supabase.com) (base de données + auth + stockage)
+- Docker (Postgres + MinIO tournent en conteneurs, en local comme sur le VPS)
 - Un compte [PowerSync Cloud](https://powersync.com) (synchronisation hors-ligne)
 
 ## 2. Installer les dépendances
@@ -19,30 +19,38 @@ cd Fishing-Boat-Management-System
 npm install
 ```
 
-## 3. Créer le projet Supabase
+## 3. Lancer Postgres + MinIO
 
-1. Crée un nouveau projet sur [supabase.com](https://supabase.com/dashboard).
-2. Dans **Project Settings → API**, note :
-   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
-   - `anon` `public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `service_role` key (secrète, ne jamais l'exposer côté client) → `SUPABASE_SERVICE_ROLE_KEY`
+```bash
+docker compose up -d
+```
 
-### Appliquer le schéma
+Le `docker-compose.yml` à la racine expose Postgres sur `localhost:55432`
+(et non `5432`) — remap volontaire pour éviter un conflit avec un autre
+conteneur Postgres tournant en local sur cette machine ; adapte le port
+dans `docker-compose.yml` et dans `.env.local` (§5) si `5432` est libre
+chez toi. MinIO expose l'API S3 sur `9000` et la console web sur `9001`.
 
-Dans **SQL Editor**, exécute le contenu de chaque fichier de
-`supabase/migrations/`, **dans l'ordre du nom de fichier** (l'horodatage
-au début garantit le bon ordre) :
+### Créer le rôle applicatif
 
-1. `20260804000000_init_schema.sql` — tables (companies, users, boats, trips, ...)
-2. `20260804000001_rls_policies.sql` — sécurité (Row Level Security, isolation par société)
-3. `20260805000000_expense_photos_storage.sql` — bucket de stockage pour les photos de reçus
-4. `20260805000001_sales_total_amount_plain_column.sql` — ajustement de colonne
+Crée `db/app_role_setup.sql` (présent en local, jamais committé — il
+contient un mot de passe) à partir de ce modèle :
 
-### Configurer le rôle PowerSync
+```sql
+create role app with login password 'CHOISIS_UN_MOT_DE_PASSE_FORT' noinherit;
+grant usage on schema public to app;
+grant select, insert, update, delete on all tables in schema public to app;
+alter default privileges in schema public grant select, insert, update, delete on tables to app;
+```
 
-Ouvre `supabase/powersync_setup.sql` (présent en local, jamais committé — il
-contient un mot de passe). Si le fichier n'existe pas encore, recrée-le à
-partir de ce modèle :
+```bash
+docker compose exec -T postgres psql -U postgres -d fbms < db/app_role_setup.sql
+```
+
+### Créer le rôle PowerSync
+
+Ouvre `db/powersync_setup.sql` (présent en local, jamais committé). S'il
+n'existe pas encore, recrée-le à partir de ce modèle :
 
 ```sql
 create role powersync_role with replication bypassrls login password 'CHOISIS_UN_MOT_DE_PASSE_FORT';
@@ -53,22 +61,51 @@ alter default privileges in schema public grant select on tables to powersync_ro
 create publication powersync for all tables;
 ```
 
-Exécute-le une fois dans le SQL Editor. **Garde le mot de passe choisi** —
-il sera redemandé à l'étape suivante.
+```bash
+docker compose exec -T postgres psql -U postgres -d fbms < db/powersync_setup.sql
+```
+
+**Garde les deux mots de passe choisis** — celui de `app` va dans
+`APP_DATABASE_URL` (§5), celui de `powersync_role` sera redemandé à
+l'étape suivante.
+
+### Appliquer le schéma
+
+```bash
+npm run migrate
+```
+
+Applique dans l'ordre chaque fichier de `db/migrations/` (tables métier,
+policies RLS, ajustements de colonnes, table `refresh_tokens`).
+
+### Créer le bucket de stockage
+
+```bash
+npm run init-storage
+```
+
+Crée le bucket MinIO `expense-photos` (photos de reçus de dépenses).
 
 ## 4. Créer l'instance PowerSync Cloud
 
 1. Sur [powersync.com](https://www.powersync.com), crée une instance.
 2. **Database Connections → Connect to Source Database** : renseigne les
-   informations de connexion Postgres de ton projet Supabase (host, port,
-   database, utilisateur `powersync_role`, mot de passe choisi à l'étape 3).
+   informations de connexion du Postgres self-hébergé (host/port de la
+   machine où tourne `docker compose` — `localhost:55432` en local,
+   inaccessible depuis PowerSync Cloud sans tunnel/exposition réseau ; sur
+   le VPS, l'adresse publique du serveur), database `fbms`, utilisateur
+   `powersync_role`, mot de passe choisi à l'étape 3.
 3. **Sync Rules** : colle le contenu de `powersync/sync-rules.yaml` (déjà
    dans le repo).
-4. **Client Auth** : configure PowerSync pour accepter les JWT émis par
-   Supabase Auth (clé publique / JWKS du projet Supabase — voir la doc
-   PowerSync "Supabase Auth integration"). Note l'URL de l'instance
-   (`NEXT_PUBLIC_POWERSYNC_URL`) et le secret associé
-   (`POWERSYNC_TOKEN_SECRET`).
+4. **Client Auth** : configure PowerSync en JWT HS256, avec le même secret
+   que `JWT_SECRET` (émis par notre propre `POST /api/auth/login` — plus de
+   vérification par clé publique/JWKS d'un fournisseur d'auth tiers).
+   Renseigne aussi `client_auth.jwks.keys[].kid` avec exactement
+   `fbms-hs256` (constante `KEY_ID` dans `lib/auth/jwt.ts`) et
+   `client_auth.audience` avec la valeur de `POWERSYNC_JWT_AUDIENCE`
+   (`.env.example`, ex. `powersync-dev` en local) — PowerSync rejette tout
+   token dont le `kid`/`aud` ne correspond pas à cette config. Note l'URL de
+   l'instance (`NEXT_PUBLIC_POWERSYNC_URL`).
 
 ## 5. Variables d'environnement
 
@@ -76,14 +113,19 @@ il sera redemandé à l'étape suivante.
 cp .env.example .env.local
 ```
 
-Remplis `.env.local` avec les valeurs récupérées aux étapes 3-4 :
+Remplis `.env.local` avec les valeurs des étapes 3-4 :
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
+DATABASE_URL=postgres://postgres:postgres@localhost:55432/fbms
+APP_DATABASE_URL=postgres://app:CHANGE_ME@localhost:55432/fbms
+JWT_SECRET=
+MINIO_ENDPOINT=localhost
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=expense-photos
+MINIO_USE_SSL=false
 NEXT_PUBLIC_POWERSYNC_URL=
-POWERSYNC_TOKEN_SECRET=
 ```
 
 ## 6. Lancer l'app en développement
@@ -98,8 +140,8 @@ de connexion s'affiche mais aucun compte n'existe encore.
 ## 7. Créer une société (compte propriétaire)
 
 Il n'y a pas d'écran d'inscription dans l'app — la toute première société et
-son compte propriétaire se créent via un script, avec la clé
-`service_role` :
+son compte propriétaire se créent via un script, avec la connexion Postgres
+admin (`DATABASE_URL`) :
 
 ```bash
 npm run seed -- --company "Nom de la société" --name "Nom du propriétaire" --phone "XXXXXXXX" --code "XXXX"
@@ -118,9 +160,10 @@ Exemple :
 npm run seed -- --company "L7ewate" --name "Hamoud" --phone "33112233" --code "5678"
 ```
 
-Le script crée : le compte de connexion (Supabase Auth), la société, les 8
-catégories de dépenses par défaut, et les réglages par défaut (méthode de
-paiement équipage, langue arabe par défaut).
+Le script crée : le compte de connexion (`phone` + `code_hash` bcrypt dans
+`public.users`), la société, les 8 catégories de dépenses par défaut, et
+les réglages par défaut (méthode de paiement équipage, langue arabe par
+défaut).
 
 ## 8. Se connecter
 
@@ -143,7 +186,7 @@ npm run seed -- --company "Autre société" --name "Autre propriétaire" --phone
 ## 10. Changer le téléphone/code d'un compte existant
 
 Si tu veux changer les identifiants d'un compte propriétaire déjà créé,
-sans repasser par le dashboard Supabase :
+sans passer par une requête SQL manuelle :
 
 ```bash
 npm run update-credentials -- --phone "XXXXXXXX" --code "XXXX"

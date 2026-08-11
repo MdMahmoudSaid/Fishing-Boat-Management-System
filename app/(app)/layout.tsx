@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { usePowerSync } from "@powersync/react";
-import { useSession } from "@/lib/supabase/AuthProvider";
+import { useSession } from "@/lib/auth/AuthProvider";
 import { registerPhotoUploadQueueListener } from "@/lib/sync/photoUploadQueue";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 

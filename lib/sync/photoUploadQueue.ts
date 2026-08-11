@@ -3,16 +3,15 @@
 //   même si l'app se ferme avant reconnexion ;
 // - `expenses.photo_local_status` (synchronisé par PowerSync) reflète l'état
 //   pour l'UI : 'pending_upload' → 'uploaded' | 'failed' ;
-// - dès que `navigator.onLine`, on tente l'upload vers Supabase Storage,
+// - dès que `navigator.onLine`, on tente l'upload via /api/photos/upload (MinIO),
 //   avec retry à backoff exponentiel (plafonné à 60s) en cas d'échec.
 
 import type { AbstractPowerSyncDatabase } from "@powersync/web";
-import { supabase } from "@/lib/supabase/client";
+import { readSession } from "@/lib/auth/session";
 
 const DB_NAME = "photo-upload-queue";
 const STORE_NAME = "photos";
 const DB_VERSION = 1;
-const BUCKET = "expense-photos";
 const MAX_RETRY_DELAY_MS = 60_000;
 
 interface QueuedPhoto {
@@ -90,12 +89,22 @@ export async function processUploadQueue(db: AbstractPowerSyncDatabase): Promise
   const queued = await getAllQueuedPhotos();
   for (const item of queued) {
     try {
-      const path = `${item.companyId}/${item.expenseId}.jpg`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, item.blob, {
-        upsert: true,
-        contentType: item.blob.type || "image/jpeg",
+      // Le serveur dérive la clé d'objet MinIO ({company_id}/{expense_id}.jpg)
+      // à partir du token et de X-Expense-Id — on ne construit plus le path ici.
+      const session = readSession();
+      if (!session) throw new Error("Aucune session active — connexion requise");
+
+      const response = await fetch("/api/photos/upload", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.accessToken}`,
+          "Content-Type": item.blob.type || "image/jpeg",
+          "X-Expense-Id": item.expenseId,
+        },
+        body: item.blob,
       });
-      if (error) throw error;
+      if (!response.ok) throw new Error(`Échec de l'upload (${response.status})`);
+      const { path } = (await response.json()) as { path: string };
 
       await db.execute(
         `UPDATE expenses SET photo_url = ?, photo_local_status = 'uploaded' WHERE id = ?`,
