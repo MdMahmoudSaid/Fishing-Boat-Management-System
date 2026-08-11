@@ -18,16 +18,23 @@ function isSyncOp(value: unknown): value is SyncOperation["op"] {
 }
 
 export async function POST(request: NextRequest) {
+  // Ces deux échecs d'authentification NE DOIVENT PAS réutiliser un code
+  // Postgres présent dans NON_RETRYABLE_POSTGRES_ERROR_CODES (ex: "42501") :
+  // BackendConnector.isNonRetryableError() écarterait alors définitivement
+  // l'écriture locale en attente (transaction.complete()) au lieu de la
+  // renvoyer plus tard une fois le token rafraîchi. "AUTH_REQUIRED" n'étant
+  // pas dans cet ensemble, le connecteur la traite comme transitoire et
+  // réessaiera après un nouveau login/refresh.
   const token = bearerToken(request);
   if (!token) {
-    return NextResponse.json({ code: "42501", message: "Authentification requise" }, { status: 401 });
+    return NextResponse.json({ code: "AUTH_REQUIRED", message: "Authentification requise" }, { status: 401 });
   }
 
   let claims;
   try {
     claims = await verifyAccessToken(token);
   } catch {
-    return NextResponse.json({ code: "42501", message: "Jeton invalide ou expiré" }, { status: 401 });
+    return NextResponse.json({ code: "AUTH_REQUIRED", message: "Jeton invalide ou expiré" }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
