@@ -1,7 +1,7 @@
 import { column, Schema, Table } from "@powersync/web";
 
 // Ce schéma est le miroir côté client (SQLite local) du schéma Postgres
-// défini dans supabase/migrations/20260804000000_init_schema.sql (§4 du
+// défini dans db/migrations/20260804000000_init_schema.sql (§4 du
 // PROJECT_PLAN). Toute colonne ajoutée d'un côté doit l'être de l'autre.
 //
 // Types PowerSync/SQLite disponibles : text, integer, real (pas de type

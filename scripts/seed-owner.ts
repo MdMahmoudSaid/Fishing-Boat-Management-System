@@ -79,7 +79,7 @@ async function main() {
       [randomUUID(), companyId],
     );
 
-    console.log("Création des 8 catégories de dépenses par défaut...");
+    console.log("Création des 9 catégories de dépenses par défaut...");
     for (const name of DEFAULT_EXPENSE_CATEGORIES) {
       await client.query(
         `INSERT INTO expense_categories (id, company_id, name, is_default) VALUES ($1, $2, $3, true)`,
