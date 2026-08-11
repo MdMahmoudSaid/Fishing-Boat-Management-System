@@ -99,8 +99,13 @@ Crée le bucket MinIO `expense-photos` (photos de reçus de dépenses).
    dans le repo).
 4. **Client Auth** : configure PowerSync en JWT HS256, avec le même secret
    que `JWT_SECRET` (émis par notre propre `POST /api/auth/login` — plus de
-   vérification par clé publique/JWKS d'un fournisseur d'auth tiers). Note
-   l'URL de l'instance (`NEXT_PUBLIC_POWERSYNC_URL`).
+   vérification par clé publique/JWKS d'un fournisseur d'auth tiers).
+   Renseigne aussi `client_auth.jwks.keys[].kid` avec exactement
+   `fbms-hs256` (constante `KEY_ID` dans `lib/auth/jwt.ts`) et
+   `client_auth.audience` avec la valeur de `POWERSYNC_JWT_AUDIENCE`
+   (`.env.example`, ex. `powersync-dev` en local) — PowerSync rejette tout
+   token dont le `kid`/`aud` ne correspond pas à cette config. Note l'URL de
+   l'instance (`NEXT_PUBLIC_POWERSYNC_URL`).
 
 ## 5. Variables d'environnement
 

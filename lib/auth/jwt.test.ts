@@ -5,6 +5,7 @@ import { verifyAccessToken } from "./verifyAccessToken";
 describe("signAccessToken / verifyAccessToken", () => {
   beforeEach(() => {
     vi.stubEnv("JWT_SECRET", "test-secret-do-not-use-in-prod");
+    vi.stubEnv("POWERSYNC_JWT_AUDIENCE", "test-audience");
   });
 
   it("un token signé se vérifie et restitue les claims", async () => {
