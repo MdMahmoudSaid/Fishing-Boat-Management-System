@@ -205,12 +205,91 @@ npm run lint    # ESLint
 npm run build   # build de production + vérification TypeScript
 ```
 
-## 12. Déploiement (Vercel)
+## 12. Déploiement (VPS)
 
-1. Connecte le repo à [Vercel](https://vercel.com).
-2. Renseigne les mêmes variables d'environnement qu'en local (§5) dans
-   **Project Settings → Environment Variables**.
-3. Déploie — Vercel détecte Next.js automatiquement (`npm run build`).
-4. Le service worker PWA (`public/sw.js`, généré par Serwist) rend l'app
-   installable et utilisable hors-ligne une fois le premier chargement fait
-   en ligne.
+L'app, Postgres, MinIO et un reverse proxy (Caddy, HTTPS automatique)
+tournent tous dans le même `docker-compose.yml`, sur le VPS. Cette section
+part d'un VPS vierge (Docker déjà installé) et suppose qu'un nom de domaine
+pointe déjà vers son IP.
+
+### 1. Cloner et créer les rôles Postgres
+
+```bash
+git clone <url-du-repo>
+cd Fishing-Boat-Management-System
+docker compose up -d postgres minio
+```
+
+Recrée `db/app_role_setup.sql` et `db/powersync_setup.sql` avec des **mots
+de passe de production, différents de ceux utilisés en local** (§3), puis
+exécute-les comme en local :
+
+```bash
+docker compose exec -T postgres psql -U postgres -d fbms < db/app_role_setup.sql
+docker compose exec -T postgres psql -U postgres -d fbms < db/powersync_setup.sql
+```
+
+### 2. Créer et remplir `.env.production`
+
+```bash
+cp .env.production.example .env.production
+```
+
+Remplis chaque valeur `CHANGE_ME_*` — voir les commentaires dans le fichier
+pour ce que chaque variable doit contenir et avec quoi elle doit rester
+cohérente (ex. `DATABASE_URL` et `POSTGRES_PASSWORD` doivent utiliser le
+même mot de passe). Génère `JWT_SECRET` avec `openssl rand -hex 32`.
+
+`DOMAIN` doit être le nom de domaine qui pointe vers l'IP du VPS — Caddy
+obtient automatiquement un certificat HTTPS pour ce domaine au démarrage.
+
+### 3. Reconfigurer PowerSync Cloud pour ce VPS
+
+Reprends l'étape §4 en pointant **Database Connections** vers l'adresse
+publique du VPS (pas `localhost`), et en renseignant dans **Client Auth**
+la valeur `POWERSYNC_JWT_AUDIENCE` que tu as choisie pour la production dans
+`.env.production`. Note l'URL de l'instance dans
+`NEXT_PUBLIC_POWERSYNC_URL` de `.env.production`.
+
+### 4. Construire et lancer toute la stack
+
+```bash
+docker compose --env-file .env.production up -d --build
+```
+
+Ceci construit l'image de l'app (`Dockerfile`, build standalone — voir
+`next.config.mjs`) et démarre les 4 services (`postgres`, `minio`, `app`,
+`caddy`). Premier accès HTTPS un peu plus lent le temps que Caddy obtienne
+le certificat.
+
+### 5. Appliquer le schéma, créer le bucket, créer le compte owner
+
+Ces trois commandes tournent sur l'hôte (pas dans un conteneur), donc elles
+ont besoin d'un `.env.local` pointant vers Postgres/MinIO via leurs ports
+**publiés sur l'hôte** (pas les noms de service Docker internes utilisés par
+le conteneur `app`) :
+
+```bash
+cp .env.production .env.local
+# puis édite .env.local : remplace `postgres` par `localhost:55432` (ou le
+# port choisi pour Postgres) et `minio` par `localhost` dans DATABASE_URL/
+# APP_DATABASE_URL/MINIO_ENDPOINT, comme en local (§5).
+npm install
+npm run migrate
+npm run init-storage
+npm run seed -- --company "..." --name "..." --phone "..." --code "...."
+```
+
+### 6. Vérifier
+
+Ouvre `https://<DOMAIN>`, connecte-toi avec le compte créé à l'étape 5,
+refais le parcours de test (créer un bateau/une sortie/une dépense avec
+photo, couper/rétablir le réseau) pour confirmer que la synchro PowerSync
+et l'upload photo fonctionnent bout en bout en production.
+
+### 7. Mettre à jour l'app après un nouveau commit
+
+```bash
+git pull
+docker compose --env-file .env.production up -d --build app
+```

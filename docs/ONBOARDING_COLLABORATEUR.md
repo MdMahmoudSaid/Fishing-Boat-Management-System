@@ -9,6 +9,10 @@ rejouer les migrations.
 Pour créer un environnement entièrement séparé (nouvelle base, nouvelles
 données), voir plutôt [`GETTING_STARTED.md`](GETTING_STARTED.md).
 
+Pour déployer (ou mettre à jour) l'app sur le VPS de production — une tâche
+différente de rejoindre le projet en tant que dev — voir
+[`GETTING_STARTED.md` §12](GETTING_STARTED.md#12-déploiement-vps).
+
 ## 1. Prérequis
 
 - Node.js 20+ et npm

@@ -13,6 +13,10 @@ const withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Image Docker de production allégée (.next/standalone) : ne copie que les
+  // fichiers réellement nécessaires à l'exécution, pas node_modules entier —
+  // voir Dockerfile.
+  output: "standalone",
 };
 
 export default withSerwist(nextConfig);

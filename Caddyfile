@@ -1,0 +1,8 @@
+# Reverse proxy devant l'app Next.js — HTTPS automatique (Let's Encrypt) dès
+# qu'un nom de domaine pointe vers l'IP du VPS. Voir docs/GETTING_STARTED.md
+# §12. `DOMAIN` est une variable d'environnement (définie dans
+# .env.production), lue par Caddy au démarrage.
+
+{$DOMAIN} {
+	reverse_proxy app:3000
+}

@@ -29,6 +29,9 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+# Contient les secrets réels du VPS (DATABASE_URL, JWT_SECRET, MINIO_*...) —
+# jamais commit. Voir .env.production.example pour le modèle.
+.env.production
 
 # Vercel
 .vercel

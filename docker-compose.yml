@@ -1,7 +1,12 @@
-# Stack self-hébergée qui remplace Supabase (Postgres + Storage). Utilisée
-# en local (npm run dev) et sur le VPS de production — seules les valeurs de
-# .env diffèrent (mots de passe, volumes). PowerSync (Cloud) et l'app
-# Next.js ne sont pas dans cette stack.
+# Stack self-hébergée qui remplace Supabase (Postgres + Storage), plus
+# l'app elle-même et son reverse proxy pour le déploiement VPS (services
+# `app`/`caddy`, non utilisés en dev local — `npm run dev` suffit).
+# PowerSync (Cloud) n'est pas dans cette stack (service externe).
+#
+# En local : `docker compose up -d postgres minio`.
+# Sur le VPS : `docker compose --env-file .env.production up -d` (voir
+# docs/GETTING_STARTED.md §12) — `.env.production` doit référencer les
+# services par leur nom Docker (`postgres`, `minio`), pas `localhost`.
 services:
   postgres:
     image: postgres:16
@@ -31,6 +36,46 @@ services:
     volumes:
       - minio-data:/data
 
+  # VPS uniquement — voir docs/GETTING_STARTED.md §12. Construit à partir du
+  # Dockerfile (build standalone). Toutes les variables serveur (DATABASE_URL,
+  # APP_DATABASE_URL, JWT_SECRET, MINIO_*...) viennent de .env.production,
+  # avec `postgres`/`minio` comme host (réseau Docker interne) plutôt que
+  # `localhost`. NEXT_PUBLIC_POWERSYNC_URL doit être fournie comme argument
+  # de build : elle est inlinée dans le JS client au moment du build, pas
+  # lisible depuis l'environnement du conteneur au runtime.
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_POWERSYNC_URL: ${NEXT_PUBLIC_POWERSYNC_URL}
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      - postgres
+      - minio
+    expose:
+      - "3000"
+
+  # VPS uniquement — reverse proxy avec HTTPS automatique (Let's Encrypt) dès
+  # que `DOMAIN` (.env.production) pointe vers l'IP du VPS.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
 volumes:
   postgres-data:
   minio-data:
+  caddy-data:
+  caddy-config:
