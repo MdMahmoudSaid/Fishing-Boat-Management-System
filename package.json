@@ -18,7 +18,6 @@
   "dependencies": {
     "@powersync/react": "^2.0.0",
     "@powersync/web": "^2.1.0",
-    "@supabase/supabase-js": "latest",
     "@serwist/next": "latest",
     "bcryptjs": "latest",
     "jose": "latest",
