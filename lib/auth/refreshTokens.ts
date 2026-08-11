@@ -21,15 +21,15 @@ export async function issueRefreshToken(userId: string): Promise<string> {
 }
 
 export async function consumeRefreshToken(token: string): Promise<{ userId: string } | null> {
-  const pool = getAdminPool();
-  const { rows } = await pool.query<{ id: string; user_id: string; expires_at: Date }>(
-    `SELECT id, user_id, expires_at FROM refresh_tokens WHERE token_hash = $1`,
+  // Une seule requête atomique DELETE + expiry check pour éviter la race condition :
+  // deux requêtes concurrentes ne peuvent pas passer le SELECT avant que l'une DELETE.
+  // Postgres's now() élimine aussi le risque de décalage d'horloge serveur/client.
+  const { rows } = await getAdminPool().query<{ id: string; user_id: string }>(
+    `DELETE FROM refresh_tokens WHERE token_hash = $1 AND expires_at >= now() RETURNING id, user_id`,
     [hashToken(token)],
   );
   const row = rows[0];
-  if (!row || row.expires_at.getTime() < Date.now()) return null;
-
-  await pool.query(`DELETE FROM refresh_tokens WHERE id = $1`, [row.id]);
+  if (!row) return null;
   return { userId: row.user_id };
 }
 
