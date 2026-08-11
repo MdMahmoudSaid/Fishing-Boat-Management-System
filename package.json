@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
+    "migrate": "tsx --env-file=.env.local scripts/migrate.ts",
     "seed": "tsx --env-file=.env.local scripts/seed-owner.ts",
     "update-credentials": "tsx --env-file=.env.local scripts/update-owner-credentials.ts"
   },
