@@ -1,9 +1,15 @@
-# Sync Rules PowerSync — V1 : une seule company/un seul admin, donc un seul
-# bucket global synchronisant tout (§3 du PROJECT_PLAN : "everything, since
-# there's one company/one admin — no per-user partitioning needed").
+# Sync Rules PowerSync — scopées par company (SaaS multi-tenant).
 #
 # À coller dans le PowerSync Dashboard (Instance -> Sync Rules) ou dans le
-# champ `sync_config_content` si géré via Terraform.
+# champ `sync_config_content` si géré via Terraform. À reconfigurer sur
+# CHAQUE instance PowerSync (Development ET Production) après ce changement.
+#
+# `request.jwt() ->> 'companyId'` lit le claim `companyId` du JWT émis par
+# POST /api/auth/login (lib/auth/jwt.ts) — absent pour un platform_admin
+# (qui ne se connecte jamais à PowerSync, voir
+# lib/powersync/PowerSyncProvider.tsx), donc `bucket.company_id` vaut alors
+# NULL et aucune ligne ne correspond : un admin ne peut rien syncer, ce qui
+# est le comportement voulu.
 #
 # Les lignes soft-deleted (`deleted_at` non nul) sont volontairement
 # synchronisées elles aussi : le client a besoin de savoir qu'un
@@ -11,20 +17,21 @@
 # responsabilité des requêtes de l'app, pas des sync rules.
 
 bucket_definitions:
-  global:
+  company_data:
+    parameters: SELECT request.jwt() ->> 'companyId' as company_id
     data:
-      - SELECT * FROM companies
-      - SELECT * FROM users
-      - SELECT * FROM boats
-      - SELECT * FROM crew_members
-      - SELECT * FROM fish_categories
-      - SELECT * FROM fish_quality_levels
-      - SELECT * FROM expense_categories
-      - SELECT * FROM buyers
-      - SELECT * FROM trips
-      - SELECT * FROM trip_crew
-      - SELECT * FROM expenses
-      - SELECT * FROM catches
-      - SELECT * FROM sales
-      - SELECT * FROM sale_payments
-      - SELECT * FROM settings
+      - SELECT * FROM companies WHERE companies.id = bucket.company_id
+      - SELECT * FROM users WHERE users.company_id = bucket.company_id
+      - SELECT * FROM boats WHERE boats.company_id = bucket.company_id
+      - SELECT * FROM crew_members WHERE crew_members.company_id = bucket.company_id
+      - SELECT * FROM fish_categories WHERE fish_categories.company_id = bucket.company_id
+      - SELECT * FROM fish_quality_levels WHERE fish_quality_levels.company_id = bucket.company_id
+      - SELECT * FROM expense_categories WHERE expense_categories.company_id = bucket.company_id
+      - SELECT * FROM buyers WHERE buyers.company_id = bucket.company_id
+      - SELECT * FROM trips WHERE trips.company_id = bucket.company_id
+      - SELECT * FROM trip_crew WHERE trip_crew.company_id = bucket.company_id
+      - SELECT * FROM expenses WHERE expenses.company_id = bucket.company_id
+      - SELECT * FROM catches WHERE catches.company_id = bucket.company_id
+      - SELECT * FROM sales WHERE sales.company_id = bucket.company_id
+      - SELECT * FROM sale_payments WHERE sale_payments.company_id = bucket.company_id
+      - SELECT * FROM settings WHERE settings.company_id = bucket.company_id

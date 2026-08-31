@@ -139,9 +139,12 @@ de connexion s'affiche mais aucun compte n'existe encore.
 
 ## 7. Créer une société (compte propriétaire)
 
-Il n'y a pas d'écran d'inscription dans l'app — la toute première société et
-son compte propriétaire se créent via un script, avec la connexion Postgres
-admin (`DATABASE_URL`) :
+Il n'y a pas d'écran d'inscription **public** dans l'app, mais un panneau
+d'administration (`/admin`, voir §7bis) permet de créer des sociétés depuis
+l'interface une fois qu'un compte `platform_admin` existe. Pour la toute
+première société (avant que ce compte existe) ou en ligne de commande, un
+script fait la même chose directement, avec la connexion Postgres admin
+(`DATABASE_URL`) :
 
 ```bash
 npm run seed -- --company "Nom de la société" --name "Nom du propriétaire" --phone "XXXXXXXX" --code "XXXX"
@@ -165,6 +168,29 @@ Le script crée : le compte de connexion (`phone` + `code_hash` bcrypt dans
 les réglages par défaut (méthode de paiement équipage, langue arabe par
 défaut).
 
+## 7bis. Panneau d'administration SaaS (`/admin`)
+
+Depuis l'ajout du multi-tenant, un rôle `platform_admin` (aucune company
+associée) donne accès à `/admin/companies` : créer/lister/rechercher une
+société, voir le détail d'une société, réinitialiser le téléphone/code de
+son owner, et désactiver/réactiver une société. C'est le chemin normal pour
+créer des sociétés au quotidien — `npm run seed` reste un outil de secours
+en ligne de commande.
+
+Comme il n'existe pas encore d'écran pour créer le tout premier
+`platform_admin` (problème de l'œuf et la poule — c'est justement ce compte
+qui donne accès à `/admin`), il se crée une seule fois via un script, avec
+la connexion Postgres admin (`DATABASE_URL`) :
+
+```bash
+npm run seed-admin -- --name "Nom" --phone "XXXXXXXX" --code "XXXX"
+```
+
+Connecte-toi ensuite sur `/login` avec ce téléphone/code : un `platform_admin`
+est automatiquement redirigé vers `/admin` plutôt que vers l'app normale.
+D'autres `platform_admin` (s'il en faut plusieurs) se créent de la même
+façon, ou en dupliquant l'insertion SQL que fait ce script.
+
 ## 8. Se connecter
 
 Dans l'app, sur l'écran de connexion :
@@ -174,10 +200,10 @@ Dans l'app, sur l'écran de connexion :
 
 ## 9. Créer une société supplémentaire
 
-Relance simplement la même commande qu'à l'étape 7 avec un **numéro de
-téléphone différent** — chaque exécution crée une société entièrement
-indépendante et isolée (aucune donnée partagée entre sociétés, garanti par
-les policies RLS) :
+Depuis `/admin/companies/new` (voir §7bis), ou en relançant la même commande
+qu'à l'étape 7 avec un **numéro de téléphone différent** — chaque société
+créée est entièrement indépendante et isolée (aucune donnée partagée entre
+sociétés, garanti par les policies RLS) :
 
 ```bash
 npm run seed -- --company "Autre société" --name "Autre propriétaire" --phone "22998877" --code "4321"
@@ -185,17 +211,18 @@ npm run seed -- --company "Autre société" --name "Autre propriétaire" --phone
 
 ## 10. Changer le téléphone/code d'un compte existant
 
-Si tu veux changer les identifiants d'un compte propriétaire déjà créé,
-sans passer par une requête SQL manuelle :
+Depuis la fiche détail d'une société dans `/admin/companies/<id>` (bouton
+"تغيير بيانات الدخول" / "Changer les identifiants", voir §7bis) — c'est le
+chemin normal désormais. En ligne de commande, le script équivalent est
+maintenant **scopé par société** (il ne suppose plus un seul owner global,
+ce qui cassait dès qu'il y avait plusieurs sociétés) :
 
 ```bash
-npm run update-credentials -- --phone "XXXXXXXX" --code "XXXX"
+npm run update-credentials -- --company "<uuid-de-la-société>" --phone "XXXXXXXX" --code "XXXX"
 ```
 
-⚠️ Ce script suppose une seule société "owner" par exécution — si plusieurs
-sociétés existent, adapte `scripts/update-owner-credentials.ts` pour cibler
-la bonne (actuellement il refuse de s'exécuter s'il trouve plus d'un
-compte `owner` au total).
+L'`<uuid>` de la société s'obtient dans `/admin/companies/<id>` (l'URL de la
+fiche détail) ou par une requête SQL (`select id, name from companies`).
 
 ## 11. Vérifications avant de committer
 
@@ -251,6 +278,22 @@ la valeur `POWERSYNC_JWT_AUDIENCE` que tu as choisie pour la production dans
 `.env.production`. Note l'URL de l'instance dans
 `NEXT_PUBLIC_POWERSYNC_URL` de `.env.production`.
 
+⚠️ **Piège vécu** : si l'instance PowerSync existait déjà avant une
+migration Postgres (ex. l'ancien backend Supabase, abandonné au profit du
+Postgres self-hébergé de ce `docker-compose.yml`), sa **Database
+Connection** continue de pointer vers l'ancienne base — invisible tant
+qu'on ne regarde pas explicitement cet onglet, mais rien ne synchronise
+(l'app affiche "غير متصل" en continu, `Failed to fetch` en console). Après
+toute migration/changement de base, va systématiquement vérifier/éditer
+**Database Connections** sur l'instance PowerSync pour confirmer qu'elle
+pointe vers le Postgres **actuellement** utilisé par l'app (host public du
+VPS, port exposé, `powersync_role`).
+
+⚠️ **Sync Rules à jour** : colle bien la version actuelle de
+`powersync/sync-rules.yaml` (scopée par `company_id` via le claim JWT
+`companyId`) — une ancienne version avec un bucket global non filtré
+ferait fuiter les données de toutes les sociétés vers tous les clients.
+
 ### 4. Construire et lancer toute la stack
 
 ```bash
@@ -262,7 +305,7 @@ Ceci construit l'image de l'app (`Dockerfile`, build standalone — voir
 `caddy`). Premier accès HTTPS un peu plus lent le temps que Caddy obtienne
 le certificat.
 
-### 5. Appliquer le schéma, créer le bucket, créer le compte owner
+### 5. Appliquer le schéma, créer le bucket, créer l'admin et la première société
 
 Ces trois commandes tournent sur l'hôte (pas dans un conteneur), donc elles
 ont besoin d'un `.env.local` pointant vers Postgres/MinIO via leurs ports
@@ -277,13 +320,21 @@ cp .env.production .env.local
 npm install
 npm run migrate
 npm run init-storage
+npm run seed-admin -- --name "Nom" --phone "XXXXXXXX" --code "XXXX"
 npm run seed -- --company "..." --name "..." --phone "..." --code "...."
 ```
 
+`seed-admin` crée le compte `platform_admin` (accès à `/admin`, voir §7bis)
+— à faire une seule fois par déploiement. `seed` crée la première société ;
+les suivantes se créent ensuite depuis `/admin/companies/new` sans repasser
+par le terminal.
+
 ### 6. Vérifier
 
-Ouvre `https://<DOMAIN>`, connecte-toi avec le compte créé à l'étape 5,
-refais le parcours de test (créer un bateau/une sortie/une dépense avec
+Ouvre `https://<DOMAIN>`, connecte-toi avec le compte `platform_admin` créé
+à l'étape 5 (doit atterrir sur `/admin/companies` et lister la société
+créée), puis avec le compte propriétaire (doit atterrir sur l'app normale).
+Refais le parcours de test (créer un bateau/une sortie/une dépense avec
 photo, couper/rétablir le réseau) pour confirmer que la synchro PowerSync
 et l'upload photo fonctionnent bout en bout en production.
 
