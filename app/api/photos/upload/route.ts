@@ -24,6 +24,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // Un platform_admin n'a pas de company (voir lib/auth/jwt.ts) : cette route
+  // ne le concerne pas.
+  if (!claims.companyId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   const expenseId = request.headers.get("x-expense-id");
   if (!expenseId || !EXPENSE_ID_PATTERN.test(expenseId)) {
     return NextResponse.json({ error: "invalid_expense_id" }, { status: 400 });

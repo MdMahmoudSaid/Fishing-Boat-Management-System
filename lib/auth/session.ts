@@ -8,7 +8,14 @@ export interface Session {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
-  user: { id: string };
+  // `role` absent sur une session persistée avant l'introduction du rôle
+  // platform_admin — lire via `getSessionRole()` plutôt que directement,
+  // pour appliquer le défaut rétrocompatible ('owner') en un seul endroit.
+  user: { id: string; role?: string };
+}
+
+export function getSessionRole(session: Session): string {
+  return session.user.role ?? "owner";
 }
 
 const STORAGE_KEY = "fbms:session";

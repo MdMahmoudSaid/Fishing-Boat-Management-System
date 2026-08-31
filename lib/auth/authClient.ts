@@ -6,7 +6,7 @@ interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
-  user: { id: string };
+  user: { id: string; role: string };
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {

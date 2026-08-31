@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "migrate": "tsx --env-file=.env.local scripts/migrate.ts",
     "seed": "tsx --env-file=.env.local scripts/seed-owner.ts",
+    "seed-admin": "tsx --env-file=.env.local scripts/seed-platform-admin.ts",
     "update-credentials": "tsx --env-file=.env.local scripts/update-owner-credentials.ts",
     "init-storage": "tsx --env-file=.env.local scripts/init-minio.ts"
   },

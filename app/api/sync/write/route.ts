@@ -37,6 +37,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ code: "AUTH_REQUIRED", message: "Jeton invalide ou expiré" }, { status: 401 });
   }
 
+  // Un platform_admin n'a pas de company (voir lib/auth/jwt.ts) et ne devrait
+  // jamais atteindre cette route (PowerSync ne se connecte jamais pour lui,
+  // voir lib/powersync/PowerSyncProvider.tsx) — garde-fou de défense en
+  // profondeur. "42501" (comme une violation RLS) : erreur permanente,
+  // BackendConnector.isNonRetryableError() écarte l'écriture au lieu de la
+  // réessayer indéfiniment (voir lib/postgres/postgresErrorCodes.ts).
+  if (!claims.companyId) {
+    return NextResponse.json({ code: "42501", message: "Aucune company associée à ce compte" }, { status: 403 });
+  }
+
   const body = await request.json().catch(() => null);
   if (!body || typeof body.table !== "string" || !isSyncOp(body.op) || typeof body.id !== "string") {
     return NextResponse.json({ code: "22P02", message: "Requête de synchro malformée" }, { status: 400 });
@@ -61,7 +71,21 @@ export async function POST(request: NextRequest) {
 
   try {
     const query = buildSyncQuery({ table: body.table, op: body.op, id: body.id, data: body.data });
-    await withCompanyContext(claims.sub, claims.companyId, (client) => client.query(query.text, query.values));
+    await withCompanyContext(claims.sub, claims.companyId, async (client) => {
+      // Une company désactivée après l'émission de ce token (≤1h, voir
+      // ACCESS_TOKEN_TTL_SECONDS) ne doit plus pouvoir écrire — login/refresh
+      // bloquent déjà les nouvelles connexions, ceci couvre la fenêtre
+      // résiduelle pour un client déjà connecté. RLS `companies_select`
+      // autorise cette lecture (la company de l'appelant lui-même).
+      const { rows } = await client.query<{ is_active: boolean }>(
+        "SELECT is_active FROM companies WHERE id = $1",
+        [claims.companyId],
+      );
+      if (rows[0]?.is_active === false) {
+        throw new SyncWriteError("42501", "Cette société a été désactivée");
+      }
+      return client.query(query.text, query.values);
+    });
     return NextResponse.json({ ok: true });
   } catch (error) {
     const code = error instanceof SyncWriteError ? error.code : (error as { code?: string })?.code;

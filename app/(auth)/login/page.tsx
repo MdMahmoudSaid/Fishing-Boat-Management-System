@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth/AuthProvider";
 import { signIn } from "@/lib/auth/authClient";
+import { getSessionRole } from "@/lib/auth/session";
 import { isValidMauritanianPhone, isValidLoginCode } from "@/lib/auth/phoneAuth";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/Button";
@@ -23,7 +24,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && session) {
-      router.replace("/");
+      router.replace(getSessionRole(session) === "platform_admin" ? "/admin" : "/");
     }
   }, [loading, session, router]);
 
@@ -41,8 +42,8 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await signIn(phone, code);
-      router.replace("/");
+      const nextSession = await signIn(phone, code);
+      router.replace(getSessionRole(nextSession) === "platform_admin" ? "/admin" : "/");
     } catch {
       setError(t("auth.loginError"));
     } finally {

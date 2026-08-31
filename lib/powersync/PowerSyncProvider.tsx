@@ -6,6 +6,7 @@ import { PowerSyncDatabase } from "@powersync/web";
 import { AppSchema } from "./AppSchema";
 import { BackendConnector } from "./BackendConnector";
 import { useSession } from "@/lib/auth/AuthProvider";
+import { getSessionRole } from "@/lib/auth/session";
 
 let dbInstance: PowerSyncDatabase | null = null;
 // `PowerSyncDatabase` n'expose pas publiquement si connect() a déjà été
@@ -42,13 +43,18 @@ function getDB(): PowerSyncDatabase {
 // logger par défaut de PowerSync journalise via console.error à ce niveau.
 function usePowerSyncAuthLifecycle(db: PowerSyncDatabase) {
   const { session, loading } = useSession();
+  // Un platform_admin n'a pas de company (token sans claim companyId, voir
+  // lib/auth/jwt.ts) : les règles de sync PowerSync sont scopées par
+  // company, donc se connecter échouerait en boucle. Ce compte gère les
+  // companies via /admin, jamais via PowerSync.
+  const isTenantSession = !!session && getSessionRole(session) !== "platform_admin";
 
   useEffect(() => {
     // Session pas encore lue depuis le stockage local : ne rien faire tant
     // qu'on ne sait pas si l'utilisateur est connecté.
     if (loading) return;
 
-    if (session) {
+    if (isTenantSession) {
       if (!isConnectRequested) {
         isConnectRequested = true;
         db.connect(new BackendConnector());
@@ -59,7 +65,7 @@ function usePowerSyncAuthLifecycle(db: PowerSyncDatabase) {
         console.error("Échec de déconnexion de PowerSync", error);
       });
     }
-  }, [db, session, loading]);
+  }, [db, isTenantSession, loading]);
 }
 
 export function PowerSyncProvider({

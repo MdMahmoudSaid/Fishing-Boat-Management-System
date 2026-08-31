@@ -8,8 +8,9 @@ export const dynamic = "force-dynamic";
 
 interface UserRow {
   id: string;
-  company_id: string;
+  company_id: string | null;
   role: string;
+  is_active: boolean | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -25,11 +26,18 @@ export async function POST(request: NextRequest) {
   }
 
   const { rows } = await getAdminPool().query<UserRow>(
-    `SELECT id, company_id, role FROM users WHERE id = $1`,
+    `SELECT u.id, u.company_id, u.role, c.is_active
+     FROM users u
+     LEFT JOIN companies c ON c.id = u.company_id
+     WHERE u.id = $1`,
     [consumed.userId],
   );
   const user = rows[0];
-  if (!user) {
+  // Company désactivée après ce login : on refuse le refresh, ce qui borne
+  // la fenêtre d'accès résiduelle à la durée de vie de l'access token en
+  // cours (≤ 1h, voir ACCESS_TOKEN_TTL_SECONDS) même si l'utilisateur était
+  // déjà connecté.
+  if (!user || user.is_active === false) {
     return NextResponse.json({ error: "invalid_token" }, { status: 401 });
   }
 
@@ -40,6 +48,6 @@ export async function POST(request: NextRequest) {
     accessToken,
     refreshToken: newRefreshToken,
     expiresAt: Date.now() + ACCESS_TOKEN_TTL_SECONDS * 1000,
-    user: { id: user.id },
+    user: { id: user.id, role: user.role },
   });
 }

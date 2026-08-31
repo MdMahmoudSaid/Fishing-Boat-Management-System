@@ -1,27 +1,16 @@
-// Crée le tout premier compte owner + sa company + ses réglages par
-// défaut. Il n'y a volontairement aucun écran d'inscription dans l'app
-// (§6 du PROJECT_PLAN) : ce script, exécuté avec la connexion Postgres
-// admin (DATABASE_URL), joue ce rôle.
+// Crée une company + son compte owner. Historiquement le seul moyen de
+// provisionner une company (§6 du PROJECT_PLAN) ; depuis l'ajout du panneau
+// admin SaaS (/admin/companies/new), ce script reste un outil de secours
+// (accès direct DB, utile en ops ou en local sans passer par l'UI). La
+// logique d'insertion vit désormais dans lib/admin/createCompany.ts, partagée
+// avec la route POST /api/admin/companies.
 //
 // Usage :
 //   npm run seed -- --company "Nom de la société" --name "Nom du propriétaire" --phone "44556677" --code "1234"
 
 import { Client } from "pg";
-import { randomUUID } from "node:crypto";
-import { hashLoginCode } from "../lib/auth/passwords";
-import { isValidLoginCode, isValidMauritanianPhone } from "../lib/auth/phoneAuth";
-
-const DEFAULT_EXPENSE_CATEGORIES = [
-  "وقود", // Carburant
-  "طعام", // Nourriture
-  "ماء", // Eau
-  "ثلج", // Glace
-  "معدات الصيد", // Équipement de pêche
-  "إصلاحات", // Réparations
-  "رسوم الميناء", // Frais de port
-  "سلفة الطاقم", // Avance équipage
-  "أخرى", // Autre
-];
+import { createCompany } from "../lib/admin/createCompany";
+import { DuplicatePhoneError, ValidationError } from "../lib/admin/errors";
 
 function requiredArg(name: string): string {
   const index = process.argv.indexOf(`--${name}`);
@@ -38,15 +27,6 @@ async function main() {
   const phone = requiredArg("phone");
   const code = requiredArg("code");
 
-  if (!isValidMauritanianPhone(phone)) {
-    throw new Error(
-      "--phone doit être un numéro mauritanien à 8 chiffres commençant par 2, 3 ou 4",
-    );
-  }
-  if (!isValidLoginCode(code)) {
-    throw new Error("--code doit être composé d'exactement 4 chiffres");
-  }
-
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error("DATABASE_URL doit être défini dans .env.local");
@@ -56,40 +36,17 @@ async function main() {
   await client.connect();
 
   try {
-    const companyId = randomUUID();
-    const userId = randomUUID();
-    const codeHash = await hashLoginCode(code);
-
-    console.log("Création de la company...");
-    await client.query(`INSERT INTO companies (id, name, currency) VALUES ($1, $2, 'MRU')`, [
-      companyId,
-      companyName,
-    ]);
-
-    console.log("Création du compte owner...");
-    await client.query(
-      `INSERT INTO users (id, company_id, name, phone, code_hash, role) VALUES ($1, $2, $3, $4, $5, 'owner')`,
-      [userId, companyId, ownerName, phone, codeHash],
-    );
-
-    console.log("Création des réglages par défaut...");
-    await client.query(
-      `INSERT INTO settings (id, company_id, default_crew_payment_method, currency, language)
-       VALUES ($1, $2, 'percentage_after_expenses', 'MRU', 'ar')`,
-      [randomUUID(), companyId],
-    );
-
-    console.log("Création des 9 catégories de dépenses par défaut...");
-    for (const name of DEFAULT_EXPENSE_CATEGORIES) {
-      await client.query(
-        `INSERT INTO expense_categories (id, company_id, name, is_default) VALUES ($1, $2, $3, true)`,
-        [randomUUID(), companyId, name],
-      );
-    }
+    console.log("Création de la company et du compte owner...");
+    await createCompany(client, { companyName, ownerName, phone, code });
 
     console.log("\n✅ Terminé. Connecte-toi dans l'app avec :");
     console.log(`   Téléphone : +222 ${phone}`);
     console.log(`   Code : celui fourni à --code`);
+  } catch (error) {
+    if (error instanceof ValidationError || error instanceof DuplicatePhoneError) {
+      throw new Error(error.message);
+    }
+    throw error;
   } finally {
     await client.end();
   }

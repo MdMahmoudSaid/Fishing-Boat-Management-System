@@ -16,13 +16,22 @@ const KEY_ID = "fbms-hs256";
 
 export interface AccessTokenPayload {
   sub: string;
-  companyId: string;
+  // `null` pour un platform_admin (aucune company associée, voir
+  // db/migrations/20260830000000_platform_admin_and_company_status.sql).
+  companyId: string | null;
   role: string;
 }
 
 export async function signAccessToken(payload: AccessTokenPayload): Promise<string> {
   const secret = new TextEncoder().encode(requireEnv("JWT_SECRET"));
-  return new SignJWT({ companyId: payload.companyId, role: payload.role })
+  // Le claim `companyId` est omis (plutôt que mis à `null`) pour un
+  // platform_admin : PowerSync lit ce paramètre de token pour scoper la
+  // sync, et une clé absente est un signal plus sûr qu'une valeur `null`
+  // qu'un client mal écrit pourrait sérialiser en la chaîne "null".
+  const claims: Record<string, string> =
+    payload.companyId !== null ? { companyId: payload.companyId, role: payload.role } : { role: payload.role };
+
+  return new SignJWT(claims)
     .setProtectedHeader({ alg: "HS256", kid: KEY_ID })
     .setSubject(payload.sub)
     .setAudience(requireEnv("POWERSYNC_JWT_AUDIENCE"))

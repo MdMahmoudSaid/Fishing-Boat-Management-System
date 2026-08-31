@@ -21,6 +21,12 @@ export async function GET(
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  // Un platform_admin n'a pas de company (voir lib/auth/jwt.ts) : cette route
+  // ne le concerne pas.
+  if (!claims.companyId) {
+    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  }
+
   const { path } = await params;
   const objectPath = path.join("/");
   if (!objectPath.startsWith(`${claims.companyId}/`)) {

@@ -10,9 +10,11 @@ export const dynamic = "force-dynamic";
 
 interface UserRow {
   id: string;
-  company_id: string;
+  company_id: string | null;
   role: string;
   code_hash: string;
+  // `null` pour un platform_admin (pas de company) — traité comme "actif".
+  is_active: boolean | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -25,12 +27,23 @@ export async function POST(request: NextRequest) {
   }
 
   const { rows } = await getAdminPool().query<UserRow>(
-    `SELECT id, company_id, role, code_hash FROM users WHERE phone = $1`,
+    `SELECT u.id, u.company_id, u.role, u.code_hash, c.is_active
+     FROM users u
+     LEFT JOIN companies c ON c.id = u.company_id
+     WHERE u.phone = $1`,
     [phone],
   );
   const user = rows[0];
 
   if (!user || !(await verifyLoginCode(code, user.code_hash))) {
+    return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
+  }
+
+  // Un compte dont la company a été désactivée par un platform_admin ne peut
+  // plus se connecter (§ deactivation). Message générique volontaire : ne
+  // pas distinguer d'une simple erreur de code, pour ne pas divulguer l'état
+  // de la company à quelqu'un qui ne fait que deviner des identifiants.
+  if (user.is_active === false) {
     return NextResponse.json({ error: "invalid_credentials" }, { status: 401 });
   }
 
@@ -41,6 +54,6 @@ export async function POST(request: NextRequest) {
     accessToken,
     refreshToken,
     expiresAt: Date.now() + ACCESS_TOKEN_TTL_SECONDS * 1000,
-    user: { id: user.id },
+    user: { id: user.id, role: user.role },
   });
 }

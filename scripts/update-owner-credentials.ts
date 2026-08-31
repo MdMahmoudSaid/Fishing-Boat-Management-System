@@ -1,8 +1,15 @@
 // Met à jour le numéro de téléphone + code de connexion du compte owner
-// existant, sans accès direct à la base autrement que via ce script.
+// d'UNE company (identifiée par --company), sans accès direct à la base
+// autrement que via ce script.
+//
+// Avec plusieurs companies (SaaS), il ne peut plus y avoir de notion
+// d'"unique owner de toute la base" — voir POST
+// /api/admin/companies/[id]/reset-credentials pour l'équivalent en panneau
+// admin, qui est désormais le chemin principal. Ce script reste un outil de
+// secours en ops (accès direct DB, utile sans passer par l'UI).
 //
 // Usage :
-//   npm run update-credentials -- --phone "44556677" --code "1234"
+//   npm run update-credentials -- --company "<uuid>" --phone "44556677" --code "1234"
 
 import { Client } from "pg";
 import { hashLoginCode } from "../lib/auth/passwords";
@@ -18,6 +25,7 @@ function requiredArg(name: string): string {
 }
 
 async function main() {
+  const companyId = requiredArg("company");
   const phone = requiredArg("phone");
   const code = requiredArg("code");
 
@@ -39,17 +47,13 @@ async function main() {
   await client.connect();
 
   try {
-    console.log("Recherche du compte owner existant...");
+    console.log("Recherche du compte owner de cette company...");
     const { rows: owners } = await client.query<{ id: string }>(
-      `SELECT id FROM users WHERE role = 'owner'`,
+      `SELECT id FROM users WHERE company_id = $1 AND role = 'owner'`,
+      [companyId],
     );
     if (owners.length === 0) {
-      throw new Error("Aucun compte owner trouvé — utilise scripts/seed-owner.ts d'abord.");
-    }
-    if (owners.length > 1) {
-      throw new Error(
-        `${owners.length} comptes owner trouvés — ce script suppose un seul admin (V1), mise à jour annulée par sécurité.`,
-      );
+      throw new Error("Aucun compte owner trouvé pour cette company.");
     }
     const owner = owners[0]!;
 
@@ -60,6 +64,9 @@ async function main() {
       codeHash,
       owner.id,
     ]);
+    // Voir POST /api/admin/companies/[id]/reset-credentials : de nouveaux
+    // identifiants doivent invalider les anciennes sessions.
+    await client.query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [owner.id]);
 
     console.log("\n✅ Terminé. Connecte-toi dans l'app avec :");
     console.log(`   Téléphone : +222 ${phone}`);
