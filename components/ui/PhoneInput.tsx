@@ -2,6 +2,7 @@
 
 import { InputHTMLAttributes, forwardRef } from "react";
 import { COUNTRY_CODE } from "@/lib/auth/phoneAuth";
+import { toLatinDigits } from "@/lib/digits";
 
 interface PhoneInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "value" | "onChange"> {
@@ -46,7 +47,7 @@ export const PhoneInput = forwardRef<HTMLInputElement, PhoneInputProps>(
             autoComplete="tel-national"
             dir="ltr"
             value={value}
-            onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 8))}
+            onChange={(e) => onChange(toLatinDigits(e.target.value).replace(/\D/g, "").slice(0, 8))}
             maxLength={8}
             className={`min-h-11 min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-faint dark:text-sand ${className}`}
             {...props}

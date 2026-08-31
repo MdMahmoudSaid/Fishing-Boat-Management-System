@@ -3,6 +3,7 @@
 import { InputHTMLAttributes, forwardRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { toLatinDigits } from "@/lib/digits";
 
 interface CodeInputProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "value" | "onChange"> {
@@ -43,7 +44,7 @@ export const CodeInput = forwardRef<HTMLInputElement, CodeInputProps>(
             inputMode="numeric"
             dir="ltr"
             value={value}
-            onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            onChange={(e) => onChange(toLatinDigits(e.target.value).replace(/\D/g, "").slice(0, 4))}
             className={`min-h-11 min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-faint dark:text-sand ${className}`}
             {...props}
           />
